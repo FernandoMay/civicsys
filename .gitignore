@@ -1,0 +1,17 @@
+# Rust build output
+target
+
+# Local Stellar config/keys
+.soroban
+.stellar
+
+# Node
+node_modules/
+dist/
+*.log
+
+# Deployment run logs (evidence JSON *is* committed)
+deployments/logs/
+
+# OS
+.DS_Store

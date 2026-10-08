@@ -1,0 +1,16 @@
+[package]
+name = "civic-accountability"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "CivicSys append-only report anchoring (RFC CIVICSYS-ARCH-001 §3.4)"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

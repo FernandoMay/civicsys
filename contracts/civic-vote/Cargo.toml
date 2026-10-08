@@ -1,0 +1,22 @@
+[package]
+name = "civic-vote"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "CivicSys ballots, nullifiers and tally (RFC CIVICSYS-ARCH-001 §3.3)"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+# NOTE: civic-identity / civic-proposal are dev-dependencies only.
+# Depending on contract crates in the normal deps would pull their wasm
+# exports (set_admin, admin, __constructor, ...) into this wasm and collide.
+# Cross-contract reads use `#[contractclient]` interface traits instead.
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+civic-identity = { path = "../civic-identity" }
+civic-proposal = { path = "../civic-proposal" }

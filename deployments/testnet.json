@@ -1,0 +1,41 @@
+{
+  "schema": "civicsys/deployments@1",
+  "network": "testnet",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "source_account": "GD6GHMPZRPSBHJGBZW56E7TEL2N4K5BEHV5TFHVUXDYEVFCBVXEWME6U",
+  "generated_at": "2026-10-08T21:34:31Z",
+  "toolchain": {
+    "stellar": "stellar 25.1.0 (a048a57a75762458b487052e0021ea704a926bee)",
+    "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)"
+  },
+  "contracts": {
+    "civic-identity": {
+      "version": "0.1.0",
+      "contract_id": "CDOOF4WZVM77IFLPP3RN7S5LCWUCR57LJ325OZMLD2D5OFSIPUL4WDNU",
+      "deploy_tx": "5816c57c0d5178639b943fb700b4cdce4bd0bc899b214b5e5f421c20e2f1867b",
+      "deploy_ledger": "5094327",
+      "wasm_sha256": "9c73c75ab51a9defc6ebfc3cc5578f4d2b00208a69d599e5873c51c0426b7c7d"
+    },
+    "civic-proposal": {
+      "version": "0.1.0",
+      "contract_id": "CBDCXSSLCGJW53HU5URXMERNGY342ECABFWU6PH4LBSMEMLM7BLK4DOF",
+      "deploy_tx": "07dbb6706db18ce333e23bdc17e11a60648b02a1d18648d7ea648f065a7a718b",
+      "deploy_ledger": "5094330",
+      "wasm_sha256": "efb58bcc9d9140f91366302ce4d4c37c690236bc8d5796487c28215f7d653727"
+    },
+    "civic-vote": {
+      "version": "0.1.0",
+      "contract_id": "CCOAEQ7ZHMRVMZYJLVAGLRITSBE73JJDI4EYS4NEZQ7XKLXJMQ35SBTZ",
+      "deploy_tx": "e0238f7cc1695d382fc75607d351c286ffeb1ddc1f7e174b21f828e9113a57e5",
+      "deploy_ledger": "5094336",
+      "wasm_sha256": "a1c2e60c6a6f9c6b774bcf46e9e96a27f7012597095ff89b3e812d6395e73ab3"
+    },
+    "civic-accountability": {
+      "version": "0.1.0",
+      "contract_id": "CDYL4GI6ZRMZDVJAZCTCU2O5RQXPYL3472M4YEM544HKYUFWT5TNKT5S",
+      "deploy_tx": "ce0ae7b096413e3f5ca16419e59aa967c48d4aed1f8db5985bc9417f504d92ff",
+      "deploy_ledger": "5094334",
+      "wasm_sha256": "b748ccac3797cd134378037e5e64795326c150e1a8345fc8aee3a96aa907bf70"
+    }
+  }
+}
