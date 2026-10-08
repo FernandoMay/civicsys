@@ -11,7 +11,9 @@ evidence, decisions and accountability can be **independently verified**.
 
 Source of truth: [`docs/rfc/CIVICSYS-ARCH-001.md`](docs/rfc/CIVICSYS-ARCH-001.md)
 · Threat model: [`docs/threat-model.md`](docs/threat-model.md) ·
-Definition of done: [`docs/definition-of-done.md`](docs/definition-of-done.md)
+Definition of done: [`docs/definition-of-done.md`](docs/definition-of-done.md) ·
+State diagrams: [`docs/state-diagram.md`](docs/state-diagram.md) ·
+FAQ: [`docs/faq.md`](docs/faq.md)
 
 ## Honesty guarantees (frozen, RFC §0)
 
@@ -55,6 +57,7 @@ Four small contracts (never one god-contract), Soroban SDK 25:
 
 Committed machine-readable records: [`deployments/testnet.json`](deployments/testnet.json)
 · [`deployments/smoke-test.json`](deployments/smoke-test.json)
+· [`deployments/testnet-neighbors.json`](deployments/testnet-neighbors.json)
 
 ### Deployments (v0.1.0, 2026-10-08)
 
@@ -67,15 +70,21 @@ Committed machine-readable records: [`deployments/testnet.json`](deployments/tes
 
 ### End-to-end smoke test (credential → proposal → vote → tally → report)
 
+Latest run — proposal **#2**, exactly as recorded in `deployments/smoke-test.json`:
+
 | Step | Evidence |
 |---|---|
-| Issue credential | tx [`934e4e44…edb268616`](https://stellar.expert/explorer/testnet/tx/934e4e44a0a3295bf3f78ff4772562c87a3d5ec6aa3988a8b9a4be3edb268616) |
-| Create proposal #1 (window OPEN) | tx [`c81ff0bd…7eb2a53ea`](https://stellar.expert/explorer/testnet/tx/c81ff0bd636999882fbce815bcf43f1c2c9df94734c8820f659a27a7eb2a53ea) |
-| Cast public vote (eligibility-gated) | tx [`025dc14d…574d9697`](https://stellar.expert/explorer/testnet/tx/025dc14d1a179d59a86a4541c12f013205edc789063af37004dd6d32574d9697) |
-| Tally read back + verified | `total=1, counts={0:1}, public_v1` → verifier **VERIFIED** (6/6 checks) |
-| Anchor accountability report #1 | tx [`cb01c2ae…ac8f2214`](https://stellar.expert/explorer/testnet/tx/cb01c2ae6c5f4698b566c4bdf901866c8f1ae137f2b93f083eeb02bcac8f2214) |
+| Issue credential (idempotent re-run) | credential proven on-chain with commitment `a391ad4f…8b3756` via `node scripts/read-credential.mjs`; first issuance tx [`934e4e44…edb268616`](https://stellar.expert/explorer/testnet/tx/934e4e44a0a3295bf3f78ff4772562c87a3d5ec6aa3988a8b9a4be3edb268616) |
+| Create proposal #2 (window OPEN) | tx [`b06bbaf4…ee2713`](https://stellar.expert/explorer/testnet/tx/b06bbaf4775ed1af5700bd69f4f6ccc8bcd749b667866ab05d3193d5e2ee2713) |
+| Cast public vote (eligibility-gated) | tx [`00eb5b33…80afaf7d6f`](https://stellar.expert/explorer/testnet/tx/00eb5b33fa9b88c7c2df5c4ff9c6c15798edd05105f136b4cf8d4c80afaf7d6f) |
+| Tally read back + verified | `total=1, counts={0:1}, public_v1` → **`verdict: verified` (6/6 checks)**, `vote_count: 1` written into the evidence file by the real verifier (`scripts/tally-verdict.mjs`) |
+| Anchor accountability report #2 | tx [`e3791e9c…b108c203`](https://stellar.expert/explorer/testnet/tx/e3791e9c1e90a7587c590e1a4ef9675137e0eaeb3e67b674047de73cb108c203) |
 
-Reproduce the full loop: `./scripts/smoke-test.sh` (writes `deployments/smoke-test.json`).
+The first run (proposal **#1**, txs `934e4e44…`, `c81ff0bd…`, `025dc14d…`,
+`cb01c2ae…`) remains verifiable on-chain and in git history.
+Reproduce the full loop: `./scripts/smoke-test.sh` (writes
+`deployments/smoke-test.json`; re-runs are idempotent — already-issued and
+already-cast steps are **proved by on-chain reads**, not by parsing error text).
 
 ## Repository
 
@@ -84,10 +93,12 @@ civicsys/
 ├── docs/rfc/CIVICSYS-ARCH-001.md   # frozen architecture — source of truth
 ├── docs/threat-model.md             # assets, threats, residual risks
 ├── docs/definition-of-done.md       # per-phase evidence checklist
+├── docs/state-diagram.md            # every state machine + disabled states
+├── docs/faq.md                      # honest Q&A (real vs not built)
 ├── contracts/                       # Rust workspace: 4 Soroban contracts
 ├── packages/sdk/                    # @civicsys/sdk — fail-closed reads + verifier
 ├── apps/dashboard/                  # Vite + React verifier UI (fail-closed)
-├── scripts/                         # deploy / verify / smoke (evidence-first)
+├── scripts/                         # deploy / verify / smoke / fund (evidence-first)
 └── deployments/                     # committed evidence records
 ```
 
@@ -104,6 +115,7 @@ stellar contract build                        # 4 wasm artifacts + hashes
 pnpm install
 pnpm --filter @civicsys/sdk test              # 16 offline verifier tests
 pnpm --filter @civicsys/sdk test:live         # 7 live testnet reads
+pnpm --filter @civicsys/sdk test:funding      # 4 funded neighbors vs Horizon (fail-closed)
 
 # dashboard (fail-closed UI against testnet)
 pnpm dev                                      # http://127.0.0.1:5173
@@ -115,6 +127,9 @@ pnpm dev                                      # http://127.0.0.1:5173
 # (re)deploy — writes fresh evidence with tx hashes + ledgers
 ./scripts/deploy-testnet.sh
 ./scripts/smoke-test.sh
+
+# testnet identities for citizen/voter E2E runs (friendbot + Horizon proof)
+pnpm fund:neighbors                            # writes deployments/testnet-neighbors.json
 ```
 
 Anyone can verify without our tooling: open the tx/contract links above in

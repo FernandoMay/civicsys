@@ -1,21 +1,23 @@
 {
   "schema": "civicsys/smoke-test@1",
-  "generated_at": "2026-10-08T21:51:28Z",
+  "generated_at": "2026-10-08T22:56:48Z",
   "admin": "GD6GHMPZRPSBHJGBZW56E7TEL2N4K5BEHV5TFHVUXDYEVFCBVXEWME6U",
   "credential_commitment": "a391ad4f162cf2bb7e5860d529e4790605cb1a25a991995ac5982196068b3756",
-  "issue_tx": "934e4e44a0a3295bf3f78ff4772562c87a3d5ec6aa3988a8b9a4be3edb268616",
+  "issue_tx": null,
   "proposal": {
-    "id": 1,
-    "create_tx": "c81ff0bd636999882fbce815bcf43f1c2c9df94734c8820f659a27a7eb2a53ea",
+    "id": 2,
+    "create_tx": "b06bbaf4775ed1af5700bd69f4f6ccc8bcd749b667866ab05d3193d5e2ee2713",
     "status_on_chain": "1"
   },
   "vote": {
-    "tx": "025dc14d1a179d59a86a4541c12f013205edc789063af37004dd6d32574d9697"
+    "tx": "00eb5b33fa9b88c7c2df5c4ff9c6c15798edd05105f136b4cf8d4c80afaf7d6f",
+    "vote_count": 1,
+    "verdict": "verified"
   },
   "report": {
-    "id": 1,
-    "anchor_tx": "cb01c2ae6c5f4698b566c4bdf901866c8f1ae137f2b93f083eeb02bcac8f2214",
-    "report_hash": "98a28cbedd679f7c4f55097342504821647a22e0fa3c95ebd861b3f4da8a3872",
-    "evidence_hash": "3ee29fc481f923ece25f24b648f17bd63a352ef110a03fa7c0ebaf2650b9e81f"
+    "id": 2,
+    "anchor_tx": "e3791e9c1e90a7587c590e1a4ef9675137e0eaeb3e67b674047de73cb108c203",
+    "report_hash": "2382f765aff378606a195431a8eceed3c970d95f5e175c7112742571eec9ee3b",
+    "evidence_hash": "835075a17657ca411866df6d727a9730ed577d2a911048338ba3b0208f50879a"
   }
 }

@@ -3,10 +3,13 @@
   "private": true,
   "description": "CivicSys — verifiable civic participation infrastructure on Stellar (RFC CIVICSYS-ARCH-001)",
   "packageManager": "pnpm@9.15.0",
+  "type": "module",
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @civicsys/sdk test",
     "test:live": "pnpm --filter @civicsys/sdk test:live",
+    "test:funding": "pnpm --filter @civicsys/sdk test:funding",
+    "fund:neighbors": "node scripts/fund-testnet-neighbors.ts",
     "build": "pnpm --filter @civicsys/sdk build && pnpm --filter @civicsys/dashboard build",
     "dev": "pnpm --filter @civicsys/dashboard dev",
     "contracts:test": "cargo test",

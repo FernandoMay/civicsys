@@ -22,6 +22,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run test/verifier.test.ts test/config.test.ts",
     "test:live": "vitest run test/live.test.ts",
+    "test:funding": "vitest run test/funding.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

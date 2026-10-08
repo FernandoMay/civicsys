@@ -5,6 +5,7 @@ set -euo pipefail
 #
 # Exercises the full MVP loop against the REAL deployed contracts:
 #   issue credential → create proposal → cast public vote → read tally
+#   → prove tally consistency with the real SDK verifier (fail-closed verdict)
 #   → anchor accountability report → verify consistency.
 #
 # Writes deployments/smoke-test.json as evidence (tx hashes, ids, results).
@@ -57,13 +58,21 @@ echo "vote:     $VOTE"; echo "accountability: $ACCOUNTABILITY"
 step "1/6 issue credential to the deployer"
 COMMITMENT="$(sha256_hex "civicsys/smoke/commitment/$ADMIN")"
 L="$LOG_DIR/smoke-issue.log"
-invoke "$L" "$IDENTITY" issue \
+if ! invoke "$L" "$IDENTITY" issue \
   --subject "$ADMIN" \
   --commitment "$COMMITMENT" \
-  --credential_type citizen \
-  || { grep -i "alreadyissued\|error" "$L" | tail -5; die "issue failed (if AlreadyIssued, that is fine for re-runs: continuing is handled below)"; }
+  --credential_type citizen; then
+  # Do not parse error strings: PROVE the credential's on-chain state instead.
+  echo "issue invoke failed — verifying credential state on-chain (fail-closed)"
+  CRED_JSON="$(node scripts/read-credential.mjs "$ADMIN" 2>>"$L")" || { tail -5 "$L"; die "credential read failed"; }
+  if [ "$(jq -r .issued <<<"$CRED_JSON")" != "true" ] || [ "$(jq -r .commitment <<<"$CRED_JSON")" != "$COMMITMENT" ]; then
+    grep -iE "alreadyissued|error" "$L" | tail -5 || true
+    die "issue failed and the credential is not provably on-chain with this commitment"
+  fi
+  echo "credential already on-chain with this commitment (re-run) — continuing"
+fi
 ISSUE_TX="$(tx_of "$L")"
-echo "issue_tx: ${ISSUE_TX:-UNKNOWN}"
+echo "issue_tx: ${ISSUE_TX:-UNKNOWN (re-run: credential pre-existed)}"
 
 step "2/6 create proposal (window: past → +1h, so voting is open now)"
 NOW="$(date -u +%s)"
@@ -89,13 +98,22 @@ echo "proposal_id: $PROPOSAL_ID  create_tx: ${CREATE_TX:-UNKNOWN}"
 
 step "3/6 cast public vote (choice 0) — requires the credential from step 1"
 L="$LOG_DIR/smoke-vote.log"
-invoke "$L" "$VOTE" cast_public \
+if ! invoke "$L" "$VOTE" cast_public \
   --proposal_id "$PROPOSAL_ID" \
   --voter "$ADMIN" \
-  --choice 0 \
-  || { tail -10 "$L"; die "cast_public failed (AlreadyVoted on re-run is acceptable; continuing to reads)"; }
+  --choice 0; then
+  # Prove the vote landed by reading the tally of THIS (fresh) proposal.
+  echo "cast_public invoke failed — verifying tally on-chain (fail-closed)"
+  VJ="$(node scripts/tally-verdict.mjs "$PROPOSAL_ID" 2>>"$L")" || { tail -5 "$L"; die "tally read failed"; }
+  VC="$(jq -r '.vote_count' <<<"$VJ")"
+  if ! [[ "$VC" =~ ^[0-9]+$ && "$VC" -ge 1 ]]; then
+    tail -10 "$L"
+    die "cast_public failed and no vote is provably on-chain"
+  fi
+  echo "vote already on-chain (re-run) — continuing"
+fi
 VOTE_TX="$(tx_of "$L")"
-echo "vote_tx: ${VOTE_TX:-UNKNOWN}"
+echo "vote_tx: ${VOTE_TX:-UNKNOWN (re-run: vote pre-existed)}"
 
 step "4/6 read tally + status from chain"
 L="$LOG_DIR/smoke-tally.log"
@@ -104,6 +122,18 @@ echo "tally: $TALLY_RAW"
 L="$LOG_DIR/smoke-status.log"
 STATUS_RAW="$(invoke "$L" "$PROPOSAL" status --id "$PROPOSAL_ID")" || { tail -10 "$L"; die "status failed"; }
 echo "status: $STATUS_RAW (1 = OPEN)"
+
+# Real verifier verdict — never a decorative label: run the SDK's actual
+# tally verifier against a fresh chain read. vote_count comes from that same
+# verified read. Fail closed unless every check proves consistency.
+[ -d packages/sdk/dist ] || pnpm --filter @civicsys/sdk build || die "SDK build failed (required for the verdict step)"
+L="$LOG_DIR/smoke-verdict.log"
+VERDICT_JSON="$(node scripts/tally-verdict.mjs "$PROPOSAL_ID" 2>"$L")" || { cat "$L" >&2; die "tally-verdict.mjs failed"; }
+VOTE_COUNT="$(jq -r '.vote_count' <<<"$VERDICT_JSON")"
+VERDICT="$(jq -r '.verdict' <<<"$VERDICT_JSON")"
+echo "verdict: $VERDICT  vote_count: $VOTE_COUNT  checks: $(jq -r '.checks | length' <<<"$VERDICT_JSON")"
+[ "$VERDICT" = "verified" ] || { jq . <<<"$VERDICT_JSON"; die "tally verdict is '$VERDICT' — fail-closed (smoke test requires proven consistency)"; }
+[[ "$VOTE_COUNT" =~ ^[0-9]+$ ]] && [ "$VOTE_COUNT" -ge 1 ] || die "vote_count not a number >= 1: $VOTE_COUNT"
 
 step "5/6 anchor an accountability report"
 REPORT_HASH="$(sha256_hex "smoke-report/$PROPOSAL_ID/$NOW")"
@@ -128,6 +158,8 @@ jq -n \
   --argjson proposal_id "$PROPOSAL_ID" \
   --arg create_tx "${CREATE_TX:-}" \
   --arg vote_tx "${VOTE_TX:-}" \
+  --argjson vote_count "$VOTE_COUNT" \
+  --arg verdict "$VERDICT" \
   --arg status "$STATUS_RAW" \
   --argjson report_id "${REPORT_ID:-0}" \
   --arg anchor_tx "${ANCHOR_TX:-}" \
@@ -140,7 +172,7 @@ jq -n \
     credential_commitment: $commitment,
     issue_tx: (if $issue_tx == "" then null else $issue_tx end),
     proposal: { id: $proposal_id, create_tx: $create_tx, status_on_chain: $status },
-    vote: { tx: $vote_tx },
+    vote: { tx: $vote_tx, vote_count: $vote_count, verdict: $verdict },
     report: { id: $report_id, anchor_tx: $anchor_tx, report_hash: $report_hash, evidence_hash: $evidence_hash }
   }' > "$OUT"
 echo "evidence written: $OUT"

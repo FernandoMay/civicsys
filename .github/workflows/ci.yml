@@ -93,3 +93,5 @@ jobs:
         run: ./scripts/verify-deployment.sh deployments/testnet.json --live
       - name: SDK live reads (fail-closed behavior against real contracts)
         run: pnpm --filter @civicsys/sdk test:live
+      - name: Neighbor funding evidence (Horizon, fail-closed)
+        run: pnpm --filter @civicsys/sdk test:funding
