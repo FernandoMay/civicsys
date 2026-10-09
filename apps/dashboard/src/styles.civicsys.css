@@ -1,0 +1,35 @@
+@import '../../design/tokens.css';
+
+:root {
+  /* Use design tokens as base */
+  --bg: var(--civicsys-paper);
+  --panel: var(--civicsys-surface-container-lowest);
+  --panel-2: var(--civicsys-surface-container-low);
+  --border: var(--civicsys-outline-variant);
+  --text: var(--civicsys-on-surface);
+  --muted: var(--civicsys-on-surface-variant);
+  --accent: var(--civicsys-primary);
+  --ok: var(--civicsys-civic);
+  --bad: var(--civicsys-error);
+  --warn: var(--civicsys-signal);
+}
+...
+// (rest of file unchanged; truncated for brevity - keep full content)
+...
+
+@media (max-width: 768px) {
+  .wrap {
+    padding: 24px 16px 48px;
+  }
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

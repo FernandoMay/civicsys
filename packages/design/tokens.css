@@ -1,0 +1,76 @@
+:root {
+  /* Core brand colors */
+  --civicsys-paper: #F7F7F3;
+  --civicsys-ink: #111315;
+  --civicsys-civic: #176B55;
+  --civicsys-signal: #E8A83E;
+
+  /* Surface colors */
+  --civicsys-surface: #FBF9F2;
+  --civicsys-surface-bright: #FBF9F2;
+  --civicsys-surface-container-lowest: #FFFFFF;
+  --civicsys-surface-container-low: #F5F4EC;
+  --civicsys-surface-container: #F0EEE6;
+  --civicsys-surface-container-high: #EAE8E1;
+  --civicsys-surface-container-highest: #E4E3DB;
+  --civicsys-surface-dim: #DBDAD3;
+  --civicsys-surface-variant: #E4E3DB;
+  --civicsys-surface-tint: #166B55;
+
+  /* Text colors */
+  --civicsys-on-surface: #1B1C18;
+  --civicsys-on-surface-variant: #3F4944;
+  --civicsys-outline: #6F7974;
+  --civicsys-outline-variant: #BEC9C3;
+
+  /* Primary */
+  --civicsys-primary: #00513F;
+  --civicsys-primary-container: #176B55;
+  --civicsys-on-primary: #FFFFFF;
+  --civicsys-on-primary-container: #9BE9CD;
+
+  /* Secondary */
+  --civicsys-secondary: #5D5E61;
+  --civicsys-secondary-container: #E2E2E5;
+  --civicsys-on-secondary: #FFFFFF;
+  --civicsys-on-secondary-container: #636467;
+
+  /* Tertiary */
+  --civicsys-tertiary: #624000;
+  --civicsys-tertiary-container: #815600;
+  --civicsys-on-tertiary: #FFFFFF;
+  --civicsys-on-tertiary-container: #FFD291;
+
+  /* Error */
+  --civicsys-error: #BA1A1A;
+  --civicsys-error-container: #FFDBD6;
+  --civicsys-on-error: #FFFFFF;
+  --civicsys-on-error-container: #93000A;
+
+  /* Inverse */
+  --civicsys-inverse-surface: #30312C;
+  --civicsys-inverse-on-surface: #F2F1E9;
+  --civicsys-inverse-primary: #89D5BA;
+
+  /* Spacing */
+  --civicsys-space-xs: 0.25rem;
+  --civicsys-space-sm: 0.5rem;
+  --civicsys-space-md: 1rem;
+  --civicsys-space-lg: 1.5rem;
+  --civicsys-space-xl: 2.5rem;
+  --civicsys-gutter: 1.5rem;
+  --civicsys-gutter-sm: 1rem;
+  --civicsys-margin: 3rem;
+  --civicsys-margin-sm: 1.25rem;
+
+  /* Radius */
+  --civicsys-radius: 0.25rem;
+  --civicsys-radius-lg: 0.5rem;
+  --civicsys-radius-xl: 0.75rem;
+  --civicsys-radius-full: 9999px;
+
+  /* Typography */
+  --civicsys-font-display: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --civicsys-font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --civicsys-font-mono: 'JetBrains Mono', 'Geist Mono', SFMono-Regular, Menlo, monospace;
+}

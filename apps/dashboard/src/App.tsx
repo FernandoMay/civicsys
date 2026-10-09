@@ -322,7 +322,9 @@ export default function App() {
     <div className="wrap">
       <header>
         <div>
-          <h1>CivicSys</h1>
+          <div className="brand">
+            <img src="/design/assets/logo-wordmark.svg" alt="CivicSys" className="brand-wordmark" />
+          </div>
           <p className="tagline">Civic decisions. Verifiable by design.</p>
         </div>
         <div className="header-right">
