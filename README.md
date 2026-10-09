@@ -70,15 +70,15 @@ Committed machine-readable records: [`deployments/testnet.json`](deployments/tes
 
 ### End-to-end smoke test (credential → proposal → vote → tally → report)
 
-Latest run — proposal **#2**, exactly as recorded in `deployments/smoke-test.json`:
+Latest run — proposal **#3**, exactly as recorded in `deployments/smoke-test.json`:
 
 | Step | Evidence |
 |---|---|
 | Issue credential (idempotent re-run) | credential proven on-chain with commitment `a391ad4f…8b3756` via `node scripts/read-credential.mjs`; first issuance tx [`934e4e44…edb268616`](https://stellar.expert/explorer/testnet/tx/934e4e44a0a3295bf3f78ff4772562c87a3d5ec6aa3988a8b9a4be3edb268616) |
-| Create proposal #2 (window OPEN) | tx [`b06bbaf4…ee2713`](https://stellar.expert/explorer/testnet/tx/b06bbaf4775ed1af5700bd69f4f6ccc8bcd749b667866ab05d3193d5e2ee2713) |
-| Cast public vote (eligibility-gated) | tx [`00eb5b33…80afaf7d6f`](https://stellar.expert/explorer/testnet/tx/00eb5b33fa9b88c7c2df5c4ff9c6c15798edd05105f136b4cf8d4c80afaf7d6f) |
+| Create proposal #3 (window OPEN) | tx [`2e6abb6c…a8307bce`](https://stellar.expert/explorer/testnet/tx/2e6abb6c20d02a6b85799f32983cc5016e272089e1aa7201421cd809a8307bce) |
+| Cast public vote (eligibility-gated) | tx [`b2ce2156…d710ef3`](https://stellar.expert/explorer/testnet/tx/b2ce2156a333f4e4bb45b64b763d1a25b639981e404f1bdb602867174d710ef3) |
 | Tally read back + verified | `total=1, counts={0:1}, public_v1` → **`verdict: verified` (6/6 checks)**, `vote_count: 1` written into the evidence file by the real verifier (`scripts/tally-verdict.mjs`) |
-| Anchor accountability report #2 | tx [`e3791e9c…b108c203`](https://stellar.expert/explorer/testnet/tx/e3791e9c1e90a7587c590e1a4ef9675137e0eaeb3e67b674047de73cb108c203) |
+| Anchor accountability report #3 | tx [`4261da4f…a595e34f`](https://stellar.expert/explorer/testnet/tx/4261da4f0e72a195b11cb38b8e6f4169a90c7ee2b045a427c85cb0e8a595e34f) |
 
 The first run (proposal **#1**, txs `934e4e44…`, `c81ff0bd…`, `025dc14d…`,
 `cb01c2ae…`) remains verifiable on-chain and in git history.

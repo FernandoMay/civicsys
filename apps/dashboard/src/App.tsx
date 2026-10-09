@@ -323,7 +323,7 @@ export default function App() {
       <header>
         <div>
           <div className="brand">
-            <img src="/design/assets/logo-wordmark.svg" alt="CivicSys" className="brand-wordmark" />
+            <img src="/assets/logo-wordmark.svg" alt="CivicSys" className="brand-wordmark" />
           </div>
           <p className="tagline">Civic decisions. Verifiable by design.</p>
         </div>
