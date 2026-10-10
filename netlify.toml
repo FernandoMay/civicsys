@@ -6,7 +6,9 @@
 [build.environment]
   NODE_VERSION = "22"
   PNPM_VERSION = "9.15.0"
-  NETLIFY_CACHE_BUST = "2026-10-10-3"
+  NETLIFY_CACHE_BUST = "2026-10-10-4"
+  # Force clean install
+  PNPM_FLAGS = "--no-optional --frozen-lockfile --prefer-offline=false"
 
 [functions]
   node_bundler = "esbuild"
