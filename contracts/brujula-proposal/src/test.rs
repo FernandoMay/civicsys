@@ -4,7 +4,7 @@ use super::*;
 use soroban_sdk::{
     symbol_short,
     testutils::{Address as _, Ledger as _},
-    Address, BytesN, Env, String,
+    Address, BytesN, Env, String, Vec,
 };
 
 fn b(env: &Env, v: u8) -> BytesN<32> {
@@ -210,7 +210,8 @@ fn only_admin_can_cancel_or_rotate_admin() {
 
     env.set_auths(&[]);
     assert!(c.try_cancel(&id, &b(&env, 0xCA)).is_err());
-    assert!(c.try_set_admin(&Address::generate(&env)).is_err());
+    let one = Vec::new(&env);
+    assert!(c.try_set_signers(&one).is_err());
 }
 
 #[test]

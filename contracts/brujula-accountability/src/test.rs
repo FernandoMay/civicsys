@@ -4,8 +4,21 @@ use super::*;
 use soroban_sdk::{
     symbol_short,
     testutils::{Address as _, Ledger as _},
-    Address, BytesN, Env,
+    Address, BytesN, ConversionError, Env, InvokeError, Vec,
 };
+
+/// `try_*` on a `Result<T, Error>` entrypoint puts the contract's own error
+/// in the outer slot.
+fn assert_state_err<T>(
+    res: Result<Result<T, ConversionError>, Result<Error, InvokeError>>,
+    expected: Error,
+) {
+    match res {
+        Err(Ok(actual)) => assert_eq!(actual, expected),
+        Err(Err(_)) => panic!("expected contract error, got host invoke error"),
+        Ok(_) => panic!("expected contract error {expected:?}, got success"),
+    }
+}
 
 fn b(env: &Env, v: u8) -> BytesN<32> {
     BytesN::from_array(env, &[v; 32])
@@ -78,12 +91,78 @@ fn append_only_sequence() {
 }
 
 #[test]
-fn admin_rotation() {
+fn admin_rotation_is_timelocked_and_observable() {
     let (env, admin) = setup();
     let c = deploy(&env, &admin);
     let new_admin = Address::generate(&env);
-    c.set_admin(&new_admin);
+
+    // Scheduling does not move control immediately.
+    let eta = c.schedule_admin_rotation(&new_admin);
+    assert_eq!(c.admin(), admin, "control must not move at schedule time");
+    let pending = c.pending_admin_rotation().unwrap();
+    assert_eq!(pending.0, new_admin);
+    assert_eq!(pending.1, eta);
+
+    // Too early: refused.
+    assert_state_err(c.try_execute_admin_rotation(), Error::RotationNotReady);
+
+    // After the delay it lands.
+    env.ledger().set_timestamp(eta);
+    c.execute_admin_rotation();
     assert_eq!(c.admin(), new_admin);
+    assert!(c.pending_admin_rotation().is_none());
+
+    // The previous signer is now rejected.
+    env.set_auths(&[]);
+    assert!(c
+        .try_anchor(
+            &1,
+            &b(&env, 1),
+            &b(&env, 2),
+            &symbol_short!("x"),
+            &Address::generate(&env)
+        )
+        .is_err());
+}
+
+#[test]
+fn a_scheduled_rotation_can_be_cancelled() {
+    let (env, admin) = setup();
+    let c = deploy(&env, &admin);
+    c.schedule_admin_rotation(&Address::generate(&env));
+    c.cancel_admin_rotation();
+    assert!(c.pending_admin_rotation().is_none());
+    assert_eq!(c.admin(), admin);
+}
+
+#[test]
+fn every_signer_must_authorise() {
+    let (env, admin) = setup();
+    let c = deploy(&env, &admin);
+    let second = Address::generate(&env);
+    let mut set = Vec::new(&env);
+    set.push_back(admin.clone());
+    set.push_back(second.clone());
+    c.set_signers(&set);
+    assert_eq!(c.admin_signers().len(), 2);
+
+    // With no auth entries at all, an admin-only call traps.
+    env.set_auths(&[]);
+    assert!(c.try_cancel_admin_rotation().is_err());
+}
+
+#[test]
+fn signer_set_must_not_be_empty_or_duplicated() {
+    let (env, admin) = setup();
+    let c = deploy(&env, &admin);
+
+    let empty = Vec::new(&env);
+    assert_state_err(c.try_set_signers(&empty), Error::InvalidSignerSet);
+
+    let mut dup = Vec::new(&env);
+    dup.push_back(admin.clone());
+    dup.push_back(admin.clone());
+    assert_state_err(c.try_set_signers(&dup), Error::InvalidSignerSet);
 }
 
 // ---------------------------------------------------------------------------

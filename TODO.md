@@ -25,12 +25,17 @@
       proof system is a research-grade dependency; shipping anything labelled
       `zk_v1` without one is exactly the fake-anonymity claim RFC §0.2 forbids.
       The residual risk stays open and is disclosed in the UI.
-- [ ] **Admin key hardening (T8):** multisig or timelock. Still a single EOA per
-      contract. Requires a contract change plus a redeploy.
-- [ ] **Per-record TTL refresh.** The keeper covers instance + wasm. Individual
-      records rely on extend-on-write, because the public testnet RPC exposes no
-      `extendFootprintTtl` and the CLI only accepts symbol or raw-XDR keys, not
-      the composite `DataKey::*` keys used here.
+- [x] **Admin key hardening (T8), partially.** N-of-N signer sets on all four
+      contracts with a public 24h rotation delay and cancel. Single-key
+      compromise is neutralised. A full signer-set compromise is still fatal,
+      and `stellar contract invoke` cannot drive a multi-signer contract —
+      `pnpm admin:signers` exists for that.
+- [ ] **Per-record TTL refresh (T14), partially.** Instance + wasm are refreshed
+      by `scripts/ttl-keeper.sh`. Individual records rely on extend-on-write
+      because the public testnet RPC exposes no `extendFootprintTtl` and the CLI
+      accepts only symbol or raw-XDR keys, not the composite `DataKey::*` keys
+      used here. Closing it needs direct RPC access or a contract-level refresh
+      entrypoint.
 - [ ] **IPFS upload pipeline (Phase 2).** Proposal CIDs are still a constant;
       there is no upload step and no off-chain re-derivation in the UI.
 - [ ] **Automatic claim extraction (Phase 3).** Today the operator declares the

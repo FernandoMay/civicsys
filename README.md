@@ -51,6 +51,9 @@ Four small contracts (never one god-contract), Soroban SDK 25:
 | `BrujulaIdentity` | credential commitments, eligibility, revocation | [`contracts/brujula-identity`](contracts/brujula-identity) |
 | `BrujulaProposal` | provenance: hashes + CID + open/close window | [`contracts/brujula-proposal`](contracts/brujula-proposal) |
 | `BrujulaVote` | ballots, nullifiers, tally, honest mode labels | [`contracts/brujula-vote`](contracts/brujula-vote) |
+
+Admin authority on every contract is **N-of-N** over a signer set, with a
+public 24h delay on rotation — see [Admin keys](#admin-keys--n-of-n-with-a-public-timelocked-rotation).
 | `BrujulaAccountability` | append-only report anchoring | [`contracts/brujula-accountability`](contracts/brujula-accountability) |
 
 ## Live evidence — Stellar Testnet
@@ -66,10 +69,10 @@ either invalidates these wasm hashes and requires a re-deploy).
 
 | Contract | Contract ID | Deploy tx | Ledger |
 |---|---|---|---|
-| brujula-identity | [`CDKXTP2VRA4HPFTF6HZWA2WKLIBUXYQVFWUGCUQPEZQO4BEVURCFVK7Z`](https://stellar.expert/explorer/testnet/contract/CDKXTP2VRA4HPFTF6HZWA2WKLIBUXYQVFWUGCUQPEZQO4BEVURCFVK7Z) | [`b78b94b8…cb7bb3`](https://stellar.expert/explorer/testnet/tx/b78b94b8d3e426113a8ac538baf6e0ee2dd95b3775f9c9937e6e8c0810cb7bb3) | 5126941 |
-| brujula-proposal | [`CDJZFBBIQZXLEZ53NYLOSVGBQRDHJ4GXIB5DMOC2TGKOXQRE2ZHP6OUW`](https://stellar.expert/explorer/testnet/contract/CDJZFBBIQZXLEZ53NYLOSVGBQRDHJ4GXIB5DMOC2TGKOXQRE2ZHP6OUW) | [`3c033172…c94a85`](https://stellar.expert/explorer/testnet/tx/3c03317235ff9751c311eaeed2982c790d80dbdfa94b4cd44301f9dd42c94a85) | 5126943 |
-| brujula-vote | [`CBEB743ZX6CCLYHA33YALQ7WLONJ6ZUYYE44CUFXXGCBQNSWUUHUJTQV`](https://stellar.expert/explorer/testnet/contract/CBEB743ZX6CCLYHA33YALQ7WLONJ6ZUYYE44CUFXXGCBQNSWUUHUJTQV) | [`0ee4e772…7a7505`](https://stellar.expert/explorer/testnet/tx/0ee4e772f7ff942b358d2f9030987324b1ee0e42d94cfbe846222ff4507a7505) | 5126948 |
-| brujula-accountability | [`CDFUVDSQLA4EM5DX3ZC2KXX5SKXAQNKP4J64M34DPQYAYBXEVO5SKJ6N`](https://stellar.expert/explorer/testnet/contract/CDFUVDSQLA4EM5DX3ZC2KXX5SKXAQNKP4J64M34DPQYAYBXEVO5SKJ6N) | [`8bdbff8a…e603ec`](https://stellar.expert/explorer/testnet/tx/8bdbff8abd6433ccbe7f47d0bee04183872293eab8ff20db5a13564c5ce603ec) | 5126946 |
+| brujula-identity | [`CAYXQI2PR3UTEDU2JYJUMTVPB7M3NXM7YH4YJ45ONY264FUBP5ZLJXTS`](https://stellar.expert/explorer/testnet/contract/CAYXQI2PR3UTEDU2JYJUMTVPB7M3NXM7YH4YJ45ONY264FUBP5ZLJXTS) | [`c41cd298…a86482`](https://stellar.expert/explorer/testnet/tx/c41cd2982eeb4d30052954d71cfb8f683f5710e94e38208c7fcc81b5c7a86482) | 5128285 |
+| brujula-proposal | [`CC5M2DNOAOG4J3IT3XZPXZXLKBZRABTTIY5XJPDNYBUEAJE5SEZRDHAI`](https://stellar.expert/explorer/testnet/contract/CC5M2DNOAOG4J3IT3XZPXZXLKBZRABTTIY5XJPDNYBUEAJE5SEZRDHAI) | [`406a6a16…ceece2`](https://stellar.expert/explorer/testnet/tx/406a6a16898e2af01f630380f0162244f65aef74d539671931b15cb043ceece2) | 5128288 |
+| brujula-accountability | [`CDTDTN3EKOXXPPIX5AP36SWCKQZPRMAGXOAUWUXDWU3LGLKWJBECIHV4`](https://stellar.expert/explorer/testnet/contract/CDTDTN3EKOXXPPIX5AP36SWCKQZPRMAGXOAUWUXDWU3LGLKWJBECIHV4) | [`de7cbe95…17c74c`](https://stellar.expert/explorer/testnet/tx/de7cbe956417cd285bab0da885a70f8cbe65edb975fe959a3318047d1d17c74c) | 5128290 |
+| brujula-vote | [`CCAC5O34PRORFLCXP5VBVJBGHDT25D3VASMN4SEY752RHKUKSU2JWNTP`](https://stellar.expert/explorer/testnet/contract/CCAC5O34PRORFLCXP5VBVJBGHDT25D3VASMN4SEY752RHKUKSU2JWNTP) | [`f304c0af…740e88`](https://stellar.expert/explorer/testnet/tx/f304c0afc131e31dc2336544ba06e5cf9643c66167a5a024de41fa1d23740e88) | 5128292 |
 
 ### End-to-end smoke test (credential → proposal → vote → tally → report)
 
@@ -87,6 +90,45 @@ in `deployments/smoke-test.json`:
 Reproduce the full loop: `./scripts/smoke-test.sh` (writes
 `deployments/smoke-test.json`; re-runs are idempotent — already-issued and
 already-cast steps are **proved by on-chain reads**, not by parsing error text).
+
+## Admin keys — N-of-N with a public, timelocked rotation
+
+Threat T8 was a single EOA per contract. Each contract now holds a **signer
+set**, and every privileged call requires **all** signers to authorise.
+
+```bash
+# inspect (any of the four contracts)
+pnpm admin:signers show --contract brujula-identity --keys brujula-deployer
+
+# widen to two keys (every CURRENT signer must sign the change)
+pnpm admin:signers set --contract brujula-identity \
+  --keys brujula-deployer --new-keys brujula-deployer,brujula-admin-2 --send
+
+# a rotation is scheduled, public, and delayed 24h before it takes effect
+pnpm admin:signers schedule --contract brujula-identity \
+  --keys brujula-deployer --to G… --send
+pnpm admin:signers cancel  --contract brujula-identity --keys brujula-deployer --send
+pnpm admin:signers execute --contract brujula-identity --keys brujula-deployer --send
+```
+
+**Why N-of-N and not a threshold.** A threshold needs an M-of-N signing
+ceremony, and a bug while counting the authorised set is a *silent
+authorisation bypass*. Requiring every signer keeps the check to plain
+`require_auth()` calls, which fail closed by construction. The honest
+trade-off: adding a signer requires all of them to sign.
+
+`pending_admin_rotation` is public, so a scheduled rotation is observable for a
+full day before it lands, and the outgoing signers can still cancel it.
+
+> **Tooling note.** `stellar contract invoke` signs with the source account plus
+> at most one extra key, so it **cannot** operate a multi-signer contract — it
+> fails with *"Missing signing key"*. That is the enforcement working, not a
+> bug. `scripts/admin-signers.ts` assembles the transaction with one
+> authorisation per signer via the SDK's `signAuthEntries`. Secrets are read
+> from the local `stellar keys` keystore at call time and never written to disk.
+
+Verified live on testnet: widened 1 → 2 signers, a single-key admin call was
+refused, then a 2-of-2 cancellation and a 2-of-2 revert were both submitted.
 
 ## Hermes — deterministic evidence verification
 
@@ -151,7 +193,7 @@ Node ≥ 20 + pnpm 9, `jq`.
 
 ```bash
 # contracts
-cargo test                                   # 49 tests
+cargo test                                   # 56 tests
 stellar contract build                       # 4 wasm artifacts + hashes
 
 # sdk + hermes

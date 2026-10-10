@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@brugulacivica/hermes": "workspace:*",
-    "@brugulacivica/sdk": "workspace:*"
+    "@brugulacivica/sdk": "workspace:*",
+    "@stellar/stellar-sdk": "^17.2.1"
   },
   "devDependencies": {
     "@types/node": "^22"
@@ -26,6 +27,7 @@
     "hermes:anchor": "node --experimental-strip-types scripts/hermes-run.ts --anchor",
     "commitment:demo": "node --experimental-strip-types scripts/commitment-flow.ts",
     "ttl:keep": "./scripts/ttl-keeper.sh",
+    "admin:signers": "node --experimental-strip-types scripts/admin-signers.ts",
     "build": "pnpm --filter @brugulacivica/sdk build && pnpm --filter @brugulacivica/hermes build && pnpm --filter @brugulacivica/dashboard build",
     "dev": "pnpm --filter @brugulacivica/dashboard dev",
     "lint:contracts": "cargo fmt --all --check && cargo clippy --all-targets -- -D warnings",

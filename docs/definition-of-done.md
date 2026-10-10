@@ -12,7 +12,7 @@ Status legend: `[x]` proven · `[ ]` not yet true (claimed nowhere).
 
 - [x] `cargo fmt --all --check` passes
 - [x] `cargo clippy --all-targets -- -D warnings` passes
-- [x] `cargo test` — **49/49** contract tests pass
+- [x] `cargo test` — **56/56** contract tests pass
 - [x] `stellar contract build` — 4 wasm artifacts, sha256 recorded in
       `deployments/testnet.json`
 - [x] `./scripts/verify-deployment.sh deployments/testnet.json --live` passes

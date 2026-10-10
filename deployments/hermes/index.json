@@ -1,11 +1,11 @@
 {
   "reports": [
     {
-      "generated_at": "2026-10-10T20:21:55.022Z",
+      "generated_at": "2026-10-10T20:45:27.012Z",
       "report_hash": "17d4a26adfe505597befe4d833203e040332ea121a9eb8ff300e02b6544bc34d",
       "evidence_hash": "d4592a4346991673f56729845ee60ca2ac36effccdd18b065f4b0a1d3d01860b",
       "overall_status": "CONTRADICTED",
-      "anchor_tx": "7a9a0430b2d4ec3610e455a7841b78c41ad729b2bafe3b9d7dbbc21b2911f010"
+      "anchor_tx": "ab343f0be6156660d58c81e0406aae7afd6b6f42e62f8d13e36a463392e6ddfe"
     }
   ]
 }
