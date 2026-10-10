@@ -1,0 +1,16 @@
+[build]
+  command = "pnpm install --frozen-lockfile && pnpm --filter @brugulacivica/dashboard build"
+  publish = "apps/dashboard/dist"
+  base = "apps/dashboard"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "9.15.0"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
