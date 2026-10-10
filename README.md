@@ -255,3 +255,4 @@ reports) → Phase 4 Privacy (ZK verifier → `zk_v1`) → Phase 5 Mobile
 
 Deferred from v0.1 by design: ZK anonymous voting, advanced credentials,
 cross-chain, mobile wallet, governance DAO, institutional integrations.
+# Force rebuild Sat Oct 10 16:58:57 CST 2026
