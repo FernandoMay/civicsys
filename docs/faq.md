@@ -89,6 +89,8 @@ node scripts/read-credential.mjs G…                              # credential 
 
 Every command fails non-zero if the evidence does not hold.
 
+## Runbook / artifacts
+
 ## Where do I see the raw evidence?
 
 - `deployments/testnet.json` — contracts, wasm sha256, deploy txs, toolchain.
