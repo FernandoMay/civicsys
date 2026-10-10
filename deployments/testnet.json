@@ -3,7 +3,7 @@
   "network": "testnet",
   "network_passphrase": "Test SDF Network ; September 2015",
   "source_account": "GBL4PUJ4UYHK72KZWPB2EKYYVR4WVKAGFXFNKBPXT57MI3NUZIBGURUT",
-  "generated_at": "2026-10-10T18:52:09Z",
+  "generated_at": "2026-10-10T20:44:09Z",
   "toolchain": {
     "stellar": "stellar 28.1.0 (c0f4d0da891bbf214c08b8c5035ae6db80e9a3bd)",
     "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)"
@@ -11,31 +11,31 @@
   "contracts": {
     "brujula-identity": {
       "version": "0.1.0",
-      "contract_id": "CDKXTP2VRA4HPFTF6HZWA2WKLIBUXYQVFWUGCUQPEZQO4BEVURCFVK7Z",
-      "deploy_tx": "b78b94b8d3e426113a8ac538baf6e0ee2dd95b3775f9c9937e6e8c0810cb7bb3",
-      "deploy_ledger": "5126941",
-      "wasm_sha256": "4a3bcd946cab0df158d5b8832e72ce75dc0e4f82c9ee7aa898de5a5bd2d1f265"
+      "contract_id": "CAYXQI2PR3UTEDU2JYJUMTVPB7M3NXM7YH4YJ45ONY264FUBP5ZLJXTS",
+      "deploy_tx": "c41cd2982eeb4d30052954d71cfb8f683f5710e94e38208c7fcc81b5c7a86482",
+      "deploy_ledger": "5128285",
+      "wasm_sha256": "0a6af0b60c33552652c7773f4c54b3ee9bb8cb2afb399610f2f93d84c7fdc3ad"
     },
     "brujula-proposal": {
       "version": "0.1.0",
-      "contract_id": "CDJZFBBIQZXLEZ53NYLOSVGBQRDHJ4GXIB5DMOC2TGKOXQRE2ZHP6OUW",
-      "deploy_tx": "3c03317235ff9751c311eaeed2982c790d80dbdfa94b4cd44301f9dd42c94a85",
-      "deploy_ledger": "5126943",
-      "wasm_sha256": "1590a51b23e57b2c71d17c11682f5da4934201d50f31aca5ab51743c61d049f1"
+      "contract_id": "CC5M2DNOAOG4J3IT3XZPXZXLKBZRABTTIY5XJPDNYBUEAJE5SEZRDHAI",
+      "deploy_tx": "406a6a16898e2af01f630380f0162244f65aef74d539671931b15cb043ceece2",
+      "deploy_ledger": "5128288",
+      "wasm_sha256": "c7aa81b4954003b083122485c3409cbb89ff89963833fa4dba68f36b7f96ef25"
     },
     "brujula-vote": {
       "version": "0.1.0",
-      "contract_id": "CBEB743ZX6CCLYHA33YALQ7WLONJ6ZUYYE44CUFXXGCBQNSWUUHUJTQV",
-      "deploy_tx": "0ee4e772f7ff942b358d2f9030987324b1ee0e42d94cfbe846222ff4507a7505",
-      "deploy_ledger": "5126948",
-      "wasm_sha256": "00afaf02c9b2f333f9df261ed4b9a7fa4ab026f65d8434f7378a1d04ce1fc498"
+      "contract_id": "CCAC5O34PRORFLCXP5VBVJBGHDT25D3VASMN4SEY752RHKUKSU2JWNTP",
+      "deploy_tx": "f304c0afc131e31dc2336544ba06e5cf9643c66167a5a024de41fa1d23740e88",
+      "deploy_ledger": "5128292",
+      "wasm_sha256": "8f6f1553d857884114a7c811d81ad17a0ff515dde0149b42504c723a69a04d7e"
     },
     "brujula-accountability": {
       "version": "0.1.0",
-      "contract_id": "CDFUVDSQLA4EM5DX3ZC2KXX5SKXAQNKP4J64M34DPQYAYBXEVO5SKJ6N",
-      "deploy_tx": "8bdbff8abd6433ccbe7f47d0bee04183872293eab8ff20db5a13564c5ce603ec",
-      "deploy_ledger": "5126946",
-      "wasm_sha256": "3af0a224afdb5a1744e28f17f5a7a17f3f859587792e4a753dba86f5bb345fb8"
+      "contract_id": "CDTDTN3EKOXXPPIX5AP36SWCKQZPRMAGXOAUWUXDWU3LGLKWJBECIHV4",
+      "deploy_tx": "de7cbe956417cd285bab0da885a70f8cbe65edb975fe959a3318047d1d17c74c",
+      "deploy_ledger": "5128290",
+      "wasm_sha256": "e1008caf9edf45518e5beae9b393d7f125723c0d3fab9b6f1e0a1a12256398b8"
     }
   }
 }

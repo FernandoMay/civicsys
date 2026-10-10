@@ -25,6 +25,22 @@ export interface BrujulaVoteContract {
     args: { proposal_id: bigint; voter: string },
     options?: MethodOptions,
   ): Promise<unknown>;
+  /**
+   * `commitment_v1` ballot. NOTE: the contract verifies the membership ROOT
+   * and the nullifier only — it cannot verify a Merkle path (RFC §5, phase 4a).
+   * Such ballots are therefore UNVERIFIED_COMMITMENT, never anonymous.
+   */
+  cast_commitment(
+    args: {
+      proposal_id: bigint;
+      choice: number;
+      nullifier: string;
+      commitment: string;
+      membership_root: string;
+      verifier_digest: string;
+    },
+    options?: MethodOptions,
+  ): Promise<AssembledTransaction<unknown>>;
 }
 
 /** `brujula-identity` — admin-only issuance is deliberately not exposed to the UI. */

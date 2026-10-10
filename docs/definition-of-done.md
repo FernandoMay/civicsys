@@ -12,15 +12,17 @@ Status legend: `[x]` proven · `[ ]` not yet true (claimed nowhere).
 
 - [x] `cargo fmt --all --check` passes
 - [x] `cargo clippy --all-targets -- -D warnings` passes
-- [x] `cargo test` — **49/49** contract tests pass
+- [x] `cargo test` — **56/56** contract tests pass
 - [x] `stellar contract build` — 4 wasm artifacts, sha256 recorded in
       `deployments/testnet.json`
 - [x] `./scripts/verify-deployment.sh deployments/testnet.json --live` passes
       (record ↔ artifact hashes ↔ live on-chain interface)
-- [x] SDK: `pnpm --filter @brugulacivica/sdk test` — **27/27** offline tests
+- [x] SDK: `pnpm --filter @brugulacivica/sdk test` — **69/69** offline tests
+- [x] Hermes: `pnpm --filter @brugulacivica/hermes test` — **49/49** tests
 - [x] SDK: `pnpm --filter @brugulacivica/sdk test:live` — **7/7** live testnet tests
-- [x] Dashboard: `pnpm --filter @brugulacivica/dashboard test` — **38/38** tests
+- [x] Dashboard: `pnpm --filter @brugulacivica/dashboard test` — **50/50** tests
 - [x] Dashboard: typecheck + production build pass
+- [x] `./scripts/ttl-keeper.sh` refreshes instance + wasm for all four contracts
 - [x] Every value the dashboard renders is either chain-backed or `DESCONOCIDO`
       (enforced by tests, not by review)
 - [x] No README/dashboard/marketing claim lacks evidence (§0 "no fake X" list)
@@ -94,19 +96,47 @@ reworded, because there was no evidence behind it:
 - [ ] IPFS upload pipeline for real proposal documents (only placeholder CID now)
 - [ ] Provenance dashboard section for off-chain content re-derivation
 
-## Phase 3 — Hermes ⬜ not started (claimed nowhere)
+## Phase 3 — Hermes ✅ (deterministic, no AI)
 
-Nothing in the UI claims this. The fabricated Hermes panel was removed precisely
-because presenting it here would have been a §0.3 violation.
+Deliberately **not** an AI system. RFC §0.3 forbids presenting model output as
+verification, so verification here means reproducible computation over
+content-addressed evidence.
 
-- [ ] Retrieval → evidence set → claims → deterministic verification
-- [ ] Report generation with sources/timestamps/hashes
-- [ ] On-chain anchoring of real reports (contract already supports it)
+- [x] Retrieval: real HTTP with every failure mode recorded (`HTTP_ERROR`,
+      `NETWORK_ERROR`, `TIMEOUT`, `TOO_LARGE`, `UNSUPPORTED_TYPE`) and never
+      silently dropped
+- [x] Evidence set hashed with a canonical JSON serializer (sorted keys, no
+      whitespace, rejects cycles, non-integers and bigints)
+- [x] Deterministic claim rules producing only `SUPPORTED` / `CONTRADICTED` /
+      `UNVERIFIED` / `UNKNOWN` — `TRUE` is not representable in the type
+- [x] Fail-closed rule: a source that failed to retrieve yields `UNVERIFIED`,
+      never `CONTRADICTED` (an unreachable document is not evidence of absence)
+- [x] Report with `report_hash` + `evidence_hash`, both reproducible
+- [x] Anchored on chain and **read back** from `BrujulaAccountability.get(5)`
+      with both digests matching (`deployments/hermes/`)
+- [x] 49 tests, including retrieval against a real local HTTP server
+- [ ] Retrieval → claim *extraction* from unstructured prose (today the operator
+      declares the literal claims to check; there is no automatic extraction)
 
-## Phase 4 — Privacy ⬜ not started (claimed nowhere)
+## Phase 4 — Privacy ⚙️ 4a done, 4b not started (claimed nowhere)
 
-- [ ] Merkle membership hashing clients
-- [ ] ZK verifier contract → mode `zk_v1` (until then: `commitment_v1` = NOT ZK)
+- [x] Merkle membership client: real, domain-separated leaves/nodes, odd-node
+      promotion, local proof verification
+- [x] Credential commitment `H(domain ‖ secret ‖ attrs)` and nullifier
+      `H(secret ‖ proposal_id)`, both length-prefixed so field boundaries cannot
+      be shifted to force a collision
+- [x] Admin publishes the root with `set_membership_root`; root read back and
+      compared
+- [x] `cast_commitment` ballot accepted on chain; tally reports
+      `commitment_v1` with `commitment_votes: 1`
+- [x] Dashboard exposes both ballot modes, with `commitment_v1` disclosed as
+      `UNVERIFIED_COMMITMENT` and explicitly *not* anonymity
+- [x] 20 membership/hash tests, cross-checked against an independent
+      `node:crypto` implementation of the same layout
+- [ ] ZK verifier contract → mode `zk_v1`. **Not attempted.** A real proof
+      system is a research-grade dependency; shipping anything labelled `zk_v1`
+      without one is precisely the claim RFC §0.2 forbids. Residual risk stays
+      open and disclosed.
 - [ ] Sybil-resistance hardening beyond issuer trust
 
 ## Phase 5 — Mobile ⬜ not started

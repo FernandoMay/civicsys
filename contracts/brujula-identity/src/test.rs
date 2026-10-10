@@ -4,7 +4,7 @@ use super::*;
 use soroban_sdk::{
     symbol_short,
     testutils::{Address as _, Ledger as _},
-    Address, BytesN, ConversionError, Env, InvokeError,
+    Address, BytesN, ConversionError, Env, InvokeError, Vec,
 };
 
 /// `try_*` on a `Result<T, Error>` entrypoint puts the contract's own error in
@@ -103,16 +103,79 @@ fn unknown_subject_is_not_eligible() {
 }
 
 #[test]
-fn set_admin_rotates_key() {
+fn admin_rotation_is_timelocked_and_observable() {
     let (env, admin, subject) = setup();
     let c = deploy(&env, &admin);
     let new_admin = Address::generate(&env);
-    c.set_admin(&new_admin);
+
+    let eta = c.schedule_admin_rotation(&new_admin);
+    assert_eq!(c.admin(), admin, "control must not move at schedule time");
+    assert_eq!(c.pending_admin_rotation().unwrap().1, eta);
+    assert_state_err(c.try_execute_admin_rotation(), Error::RotationNotReady);
+
+    env.ledger().set_timestamp(eta);
+    c.execute_admin_rotation();
     assert_eq!(c.admin(), new_admin);
-    // old admin is rejected by auth (traps at auth level)
+    assert!(c.pending_admin_rotation().is_none());
+
+    // The old admin can no longer issue credentials.
     env.set_auths(&[]);
-    let res = c.try_issue(&subject, &b(&env, 0x01), &symbol_short!("citizen"));
-    assert!(res.is_err(), "old admin must be rejected by auth");
+    assert!(c
+        .try_issue(&subject, &b(&env, 0x01), &symbol_short!("citizen"))
+        .is_err());
+}
+
+#[test]
+fn a_scheduled_rotation_can_be_cancelled() {
+    let (env, admin, _subject) = setup();
+    let c = deploy(&env, &admin);
+    c.schedule_admin_rotation(&Address::generate(&env));
+    c.cancel_admin_rotation();
+    assert!(c.pending_admin_rotation().is_none());
+    assert_eq!(c.admin(), admin);
+    // Cancelling with nothing scheduled is an error, not a silent no-op.
+    assert_state_err(c.try_cancel_admin_rotation(), Error::NoPendingRotation);
+}
+
+#[test]
+fn admin_authority_is_n_of_n_over_signers() {
+    let (env, admin, subject) = setup();
+    let c = deploy(&env, &admin);
+    let second = Address::generate(&env);
+    let mut set = Vec::new(&env);
+    set.push_back(admin.clone());
+    set.push_back(second.clone());
+    c.set_signers(&set);
+    assert_eq!(c.admin_signers().len(), 2);
+    assert_eq!(c.admin(), admin);
+
+    // With zero authorised signers, every admin-only call traps.
+    env.set_auths(&[]);
+    assert!(c
+        .try_issue(&subject, &b(&env, 0x01), &symbol_short!("citizen"))
+        .is_err());
+}
+
+#[test]
+fn signer_set_rejects_empty_and_duplicates() {
+    let (env, admin, _subject) = setup();
+    let c = deploy(&env, &admin);
+
+    let empty = Vec::new(&env);
+    assert_state_err(c.try_set_signers(&empty), Error::InvalidSignerSet);
+
+    let mut dup = Vec::new(&env);
+    dup.push_back(admin.clone());
+    dup.push_back(admin.clone());
+    assert_state_err(c.try_set_signers(&dup), Error::InvalidSignerSet);
+}
+
+#[test]
+fn the_rotation_delay_is_public_and_constant() {
+    let (env, admin, _subject) = setup();
+    let c = deploy(&env, &admin);
+    assert_eq!(c.admin_rotation_delay(), ADMIN_ROTATION_DELAY);
+    assert_eq!(c.pending_admin_rotation(), None);
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +251,8 @@ fn only_admin_can_mutate_credentials() {
     assert!(c.try_reinstate(&subject).is_err());
     assert!(c.try_revoke(&subject, &b(&env, 0xEE)).is_err());
     assert!(c.try_set_eligible(&subject, &false).is_err());
-    assert!(c.try_set_admin(&Address::generate(&env)).is_err());
+    let one = Vec::new(&env);
+    assert!(c.try_set_signers(&one).is_err());
 }
 
 #[test]
