@@ -210,210 +210,263 @@ export default function Vote({
   };
 
   return (
-    <section className="vote-section" id="votar">
-      <div className="vote-card">
-        <div className="vote-head">
-          <div className="vote-head-left">
-            <span className="vote-dot" aria-hidden="true" />
-            <h2 className="vote-title">Terminal de Emisión de Voto</h2>
-          </div>
-          <span className="vote-spec">MODO public_v1</span>
-        </div>
-
-        <div className="vote-identity">
-          <div className="vote-identity-row">
-            <div className="vote-identity-avatar">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
+    <section className="py-space-xl" id="votar">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+        <div className="lg:col-span-7 bg-surface-container-lowest p-space-lg shadow-sm">
+          <div className="flex items-center justify-between pb-space-sm">
+            <div className="flex items-center gap-space-xs">
+              <span className="inline-block w-2.5 h-2.5 bg-primary" aria-hidden="true" />
+              <h2 className="font-headline-md text-headline-md text-on-surface">Terminal de Emisión de Voto</h2>
             </div>
-            <div className="vote-identity-info">
-              <span className="vote-identity-name">
-                {address ? address : "SIN CARTERA CONECTADA"}
-              </span>
-              <span className="vote-identity-meta">
-                {address
-                  ? "Identidad tomada de tu cartera"
-                  : "El contrato exige una firma; no se puede votar sin cartera"}
-              </span>
-            </div>
-            <span className="vote-identity-badge">
-              {address ? "[✓ CARTERA CONECTADA]" : "[? SIN CARTERA]"}
-            </span>
+            <span className="font-code-sm text-code-sm text-outline">MODO {mode === "public" ? "public_v1" : "commitment_v1"}</span>
           </div>
-        </div>
 
-        {/* Kept outside `.vote-identity` on purpose: that element is a flex row,
-            so a block-level notice inside it becomes a squeezed sibling. */}
-        {available === false && (
-          <p className="vote-zk-note" role="status">
-            <strong className="zk-note-strong">Cartera no detectada:</strong>{" "}
-            {walletError ??
-              "instala Freighter (u otra compatible) para poder firmar transacciones."}
-          </p>
-        )}
-
-        <form className="vote-form" onSubmit={submit}>
-          <fieldset>
-            <legend className="vote-legend">1. Elige la iniciativa abierta:</legend>
-            {openProposals.length === 0 ? (
-              <div className="unknown">
-                <span className="chip chip-unknown">SIN CONSULTAS ABIERTAS</span>
-                <span className="reason">
-                  ninguna propuesta tiene su ventana de votación abierta ahora mismo
-                </span>
-              </div>
-            ) : (
-              <label className="vote-option">
-                <select
-                  className="modal-input"
-                  value={selected === null ? "" : selected.toString()}
-                  onChange={(e) => onSelect(BigInt(e.target.value))}
-                  aria-label="Iniciativa"
-                >
-                  {openProposals.map((r) => (
-                    <option key={r.id.toString()} value={r.id.toString()}>
-                      Iniciativa #{r.id.toString()}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </fieldset>
-
-          <fieldset disabled={selected === null || !address}>
-            <legend className="vote-legend">1. Elige cómo se registra tu voto:</legend>
-            <label className={`vote-option ${mode === "public" ? "vote-option-selected" : ""}`}>
-              <input
-                type="radio"
-                name="ballot_mode"
-                value="public"
-                checked={mode === "public"}
-                onChange={() => setMode("public")}
-                className="vote-radio"
-              />
-              <div className="vote-option-content">
-                <span className="vote-option-label">Público (public_v1)</span>
-                <span className="vote-option-desc">
-                  Registrado contra tu dirección. Transparente y verificable.
-                </span>
-              </div>
-            </label>
-            <label className={`vote-option ${mode === "commitment" ? "vote-option-selected" : ""}`}>
-              <input
-                type="radio"
-                name="ballot_mode"
-                value="commitment"
-                checked={mode === "commitment"}
-                onChange={() => setMode("commitment")}
-                className="vote-radio"
-              />
-              <div className="vote-option-content">
-                <span className="vote-option-label">Por compromiso (commitment_v1)</span>
-                <span className="vote-option-desc">
-                  {membershipRoot === null
-                    ? rootRead?.status === "unknown"
-                      ? "No se pudo leer la raíz de membresía de esta propuesta."
-                      : "Ningún administrador publicó una raíz de membresía: el contrato rechazaría la boleta."
-                    : `Raíz publicada en cadena: ${membershipRoot.slice(0, 12)}… El recuento se indexa por nullificador, no por tu dirección.`}
-                </span>
-              </div>
-            </label>
-          </fieldset>
-
-          <fieldset disabled={selected === null || !address}>
-            <legend className="vote-legend">2. Selecciona tu decisión deliberada:</legend>
-            {CHOICES.map((c) => (
-              <label
-                key={c.value}
-                className={`vote-option ${choice === c.value ? "vote-option-selected" : ""}`}
-              >
-                <input
-                  type="radio"
-                  name="ballot_choice"
-                  value={c.value}
-                  checked={choice === c.value}
-                  onChange={() => setChoice(c.value)}
-                  className="vote-radio"
-                />
-                <div className="vote-option-content">
-                  <span className="vote-option-label">{c.label}</span>
-                  <span className="vote-option-desc">{c.desc}</span>
+          <div className="p-space-sm bg-surface-container-low my-space-md">
+            <div className="flex items-center justify-between gap-space-sm">
+              <div className="flex items-center gap-space-sm min-w-0">
+                <span className="material-symbols-outlined text-primary text-[22px]" aria-hidden="true">badge</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-body-sm text-body-sm font-semibold text-on-surface brujula-break" title={address ?? undefined}>
+                    {address ? `${address.slice(0, 10)}…${address.slice(-6)}` : "SIN CARTERA CONECTADA"}
+                  </span>
+                  <span className="font-code-sm text-code-sm text-outline">
+                    {address ? "Identidad tomada de tu cartera" : "Sin firma no hay voto"}
+                  </span>
                 </div>
-              </label>
-            ))}
-          </fieldset>
-
-          <div className="vote-zk-note">
-            <svg className="zk-note-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
-            </svg>
-            <p>
-              <strong className="zk-note-strong">Nota de privacidad:</strong> este
-              voto va firmado por tu dirección de cartera y es{" "}
-              <strong>públicamente visible</strong> en la cadena. No es anónimo. La
-              modalidad <code>commitment_v1</code> oculta la dirección en el recuento,
-              pero no prueba pertenencia y se marca UNVERIFIED_COMMITMENT. No existe
-              anonymity verificable (<code>zk_v1</code>) hasta que haya un verificador
-              ZK desplegado.
-            </p>
+              </div>
+              <span className="font-code-sm text-code-sm px-2 py-1 bg-surface-container-lowest text-primary font-semibold shrink-0">
+                {address ? "[✓ CONECTADA]" : "[? SIN CARTERA]"}
+              </span>
+            </div>
           </div>
 
-          {txError && (
-            <p className="vote-error" role="alert">
-              La transacción no se pudo emitir: {txError}
+          {available === false && (
+            <p className="p-space-sm bg-surface-container-low font-body-sm text-body-sm text-on-surface-variant" role="status">
+              <strong>Cartera no detectada:</strong>{" "}
+              {walletError ?? "instala Freighter (u otra compatible) para poder firmar transacciones."}
             </p>
           )}
 
-          {!address && (
-            <button
-              type="button"
-              className="btn btn-secondary vote-cta"
-              onClick={() => void connect()}
-              disabled={connecting || available === false}
-            >
-              {connecting ? "Conectando…" : "Conectar cartera"}
-            </button>
-          )}
+          <form className="space-y-space-sm" onSubmit={submit}>
+            <fieldset>
+              <legend className="font-code-sm text-code-sm text-on-surface uppercase font-semibold mb-space-xs">
+                1. Elige la iniciativa abierta:
+              </legend>
+              {openProposals.length === 0 ? (
+                <div className="flex items-center gap-space-sm p-space-md bg-surface-container-low border border-dashed border-outline">
+                  <span className="font-code-sm text-code-sm font-bold text-outline">[SIN CONSULTAS ABIERTAS]</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant">
+                    ninguna propuesta tiene su ventana de votación abierta ahora mismo
+                  </span>
+                </div>
+              ) : (
+                <label className="block bg-surface-container-low p-space-sm">
+                  <select
+                    className="w-full bg-surface p-space-sm font-code-sm text-code-sm text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                    value={selected === null ? "" : selected.toString()}
+                    onChange={(e) => onSelect(BigInt(e.target.value))}
+                    aria-label="Iniciativa"
+                  >
+                    {openProposals.map((r) => (
+                      <option key={r.id.toString()} value={r.id.toString()}>
+                        Iniciativa #{r.id.toString()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </fieldset>
 
-          {address && (
-            <button
-              type="submit"
-              className="btn btn-primary vote-cta"
-              disabled={choice === null || selected === null || phase !== "idle"}
-            >
-              {phase === "signing"
-                ? "Esperando firma…"
-                : phase === "submitting"
-                  ? "Enviando al ledger…"
-                  : "Confirmar y emitir voto"}
-            </button>
-          )}
-        </form>
+            <fieldset disabled={selected === null || !address}>
+              <legend className="font-code-sm text-code-sm text-on-surface uppercase font-semibold mb-space-xs">
+                2. Elige cómo se registra tu voto:
+              </legend>
+              <div className="space-y-space-sm">
+                <ModeOption
+                  name="ballot_mode"
+                  value="public"
+                  checked={mode === "public"}
+                  onChange={() => setMode("public")}
+                  label="Público (public_v1)"
+                  desc="Registrado contra tu dirección. Transparente y verificable."
+                />
+                <ModeOption
+                  name="ballot_mode"
+                  value="commitment"
+                  checked={mode === "commitment"}
+                  onChange={() => setMode("commitment")}
+                  label="Por compromiso (commitment_v1)"
+                  desc={
+                    membershipRoot === null
+                      ? rootRead?.status === "unknown"
+                        ? "No se pudo leer la raíz de membresía de esta propuesta."
+                        : "Ningún administrador publicó una raíz de membresía: el contrato rechazaría la boleta."
+                      : `Raíz publicada en cadena: ${membershipRoot.slice(0, 12)}… El recuento se indexa por nullificador, no por tu dirección.`
+                  }
+                />
+              </div>
+            </fieldset>
 
-        {receipt && (
-          <div className="vote-receipt" role="status" aria-live="polite">
-            <div className="receipt-head">
-              <span className="receipt-title">VOTO EMITIDO</span>
+            <fieldset disabled={selected === null || !address}>
+              <legend className="font-code-sm text-code-sm text-on-surface uppercase font-semibold mb-space-xs">
+                3. Selecciona tu decisión deliberada:
+              </legend>
+              <div className="space-y-space-sm">
+                {CHOICES.map((c) => (
+                  <label
+                    key={c.value}
+                    className={`cursor-pointer block transition-all p-space-md ${
+                      choice === c.value ? "bg-surface-container-highest" : "bg-surface-container-low hover:bg-surface-container"
+                    }`}
+                  >
+                    <div className="flex items-start gap-space-sm">
+                      <input
+                        type="radio"
+                        name="ballot_choice"
+                        value={c.value}
+                        checked={choice === c.value}
+                        onChange={() => setChoice(c.value)}
+                        className="mt-1 w-4 h-4 accent-primary cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-body-md text-body-md font-semibold text-on-surface">{c.label}</span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant">{c.desc}</span>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="p-space-sm bg-surface-container-high/60 mt-space-md">
+              <div className="flex gap-space-xs items-start">
+                <span className="material-symbols-outlined text-outline text-[18px] mt-0.5" aria-hidden="true">shield</span>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  <strong>Nota de privacidad:</strong> este voto va firmado por tu
+                  dirección de cartera y es <strong>públicamente visible</strong> en
+                  la cadena. No es anónimo. La modalidad{" "}
+                  <code className="font-code-sm text-code-sm font-semibold">commitment_v1</code>{" "}
+                  oculta la dirección en el recuento, pero no prueba pertenencia y se
+                  marca UNVERIFIED_COMMITMENT. No existe anonimato verificable (
+                  <code className="font-code-sm text-code-sm font-semibold">zk_v1</code>) hasta
+                  que haya un verificador ZK desplegado.
+                </p>
+              </div>
             </div>
-            <p className="receipt-time">
-              Iniciativa #{receipt.proposalId.toString()} · opción {receipt.choice} ·{" "}
-              {receipt.at}
+
+            {txError && (
+              <p className="p-space-sm bg-error-container text-on-error-container font-body-sm text-body-sm" role="alert">
+                La transacción no se pudo emitir: {txError}
+              </p>
+            )}
+
+            {!address && (
+              <button
+                type="button"
+                className="w-full py-space-sm bg-surface-container-highest text-on-surface font-body-md font-semibold hover:bg-surface-container transition-colors disabled:opacity-50"
+                onClick={() => void connect()}
+                disabled={connecting || available === false}
+              >
+                {connecting ? "Conectando…" : "Conectar cartera"}
+              </button>
+            )}
+
+            {address && (
+              <button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary-container text-on-primary py-3 px-space-md font-body-md text-body-md font-semibold flex items-center justify-center gap-space-xs transition-colors shadow-sm disabled:opacity-50"
+                disabled={choice === null || selected === null || phase !== "idle"}
+              >
+                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">fingerprint</span>
+                {phase === "signing"
+                  ? "Esperando firma…"
+                  : phase === "submitting"
+                    ? "Enviando al ledger…"
+                    : "Confirmar y emitir voto"}
+              </button>
+            )}
+          </form>
+
+          {receipt && (
+            <div className="mt-space-md p-space-md bg-surface-container-lowest border-l-4 border-l-primary" role="status" aria-live="polite">
+              <div className="flex items-center gap-space-xs text-primary font-semibold font-code-sm text-code-sm mb-1">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">verified</span>
+                <span>¡VOTO EMITIDO!</span>
+              </div>
+              <p className="font-body-sm text-body-sm text-on-surface mb-2">
+                Iniciativa #{receipt.proposalId.toString()} · opción {receipt.choice} · modo {receipt.mode} · {receipt.at}
+              </p>
+              <div className="bg-surface-container-low p-space-xs font-code-sm text-code-sm text-on-surface-variant brujula-break select-all">
+                TX: {receipt.txHash || UNKNOWN} · ledger: {receipt.confirmedLedger}
+                {receipt.nullifier && (
+                  <>
+                    <br />
+                    NULLIFICADOR: {receipt.nullifier}
+                  </>
+                )}
+              </div>
+              <button type="button" className="mt-2 px-space-md py-space-sm bg-surface-container text-on-surface font-body-sm font-semibold" onClick={reset}>
+                Emitir otro voto
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-5 flex flex-col gap-space-lg">
+          <TallyPanel selected={selected} tally={tally} loading={tallyLoading} onReload={() => selected && void reloadTally(selected)} />
+          <div className="bg-surface-container-low p-space-md space-y-space-xs">
+            <div className="flex items-center gap-space-xs text-on-surface font-semibold font-body-md text-body-md">
+              <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">policy</span>
+              <span>Garantía de escrutinio</span>
+            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              El recuento se relee del contrato en cada emisión. El verificador
+              comprueba la consistencia interna; si algo no cuadra, lo declara
+              INCONSISTENTE en vez de ocultarlo.
             </p>
-            <div className="receipt-code">
-              <span className="receipt-label">TX:</span>
-              <code className="receipt-value">{receipt.txHash || UNKNOWN}</code>
-              <span className="receipt-hash">ledger: {receipt.confirmedLedger}</span>
-            </div>
-            <button type="button" className="btn btn-secondary" onClick={reset}>
-              Emitir otro voto
-            </button>
           </div>
-        )}
+        </div>
       </div>
-
-      <TallyPanel selected={selected} tally={tally} loading={tallyLoading} onReload={() => selected && void reloadTally(selected)} />
     </section>
+  );
+}
+
+function ModeOption({
+  name,
+  value,
+  checked,
+  onChange,
+  label,
+  desc,
+}: {
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  desc: string;
+}) {
+  return (
+    <label
+      className={`cursor-pointer block transition-all p-space-md ${
+        checked ? "bg-surface-container-highest" : "bg-surface-container-low hover:bg-surface-container"
+      }`}
+    >
+      <div className="flex items-start gap-space-sm">
+        <input
+          type="radio"
+          name={name}
+          value={value}
+          checked={checked}
+          onChange={onChange}
+          className="mt-1 w-4 h-4 accent-primary cursor-pointer"
+        />
+        <div className="flex flex-col">
+          <span className="font-body-md text-body-md font-semibold text-on-surface">{label}</span>
+          <span className="font-body-sm text-body-sm text-on-surface-variant">{desc}</span>
+        </div>
+      </div>
+    </label>
   );
 }
 
@@ -436,88 +489,76 @@ function TallyPanel({
   const t = tally?.status === "ok" ? tally.value.tally : null;
 
   return (
-    <div className="quorum-card">
-      <div className="quorum-head">
-        <div className="quorum-head-left">
-          <h3 className="quorum-title">Monitoreo del Escrutinio</h3>
+    <div className="bg-surface-container-lowest p-space-lg space-y-space-md">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-space-xs">
+          <span className="material-symbols-outlined text-outline text-[20px]" aria-hidden="true">analytics</span>
+          <h3 className="font-headline-md text-headline-md text-on-surface">Monitoreo del Escrutinio</h3>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={onReload} disabled={selected === null}>
+        <button
+          type="button"
+          onClick={onReload}
+          disabled={selected === null}
+          className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm disabled:opacity-50"
+        >
           {loading ? "Leyendo…" : "Releer recuento"}
         </button>
       </div>
 
-      <div className="quorum-stats">
-        <div className="quorum-stat">
-          <span className="stat-value">
+      <div className="space-y-space-xs">
+        <div className="flex justify-between items-baseline font-body-sm text-body-sm">
+          <span className="text-on-surface font-semibold">
             {selected === null ? UNKNOWN : `Iniciativa #${selected.toString()}`}
           </span>
-          <span className="stat-label">leída desde brujula-vote</span>
-        </div>
-        <div className="quorum-stat">
-          <span className="stat-value">{t ? t.total.toString() : UNKNOWN}</span>
-          <span className="stat-label">votos totales</span>
-        </div>
-        <div className="quorum-stat">
-          <span className="stat-value">
-            {verdict === "verified"
-              ? "VERIFICADO"
-              : verdict === "mismatch"
-                ? "INCONSISTENTE"
-                : UNKNOWN}
+          <span className="font-code-sm text-code-sm text-outline">
+            {t ? `${t.total.toString()} VOTOS TOTALES` : "SIN LECTURA"}
           </span>
-          <span className="stat-label">veredicto del verificador</span>
         </div>
-      </div>
-
-      {t && t.total > 0n ? (
-        <>
-          <div className="quorum-bar">
-            <div className="quorum-bar-track">
-              <div
-                className="quorum-bar-fill"
-                style={{ width: pct(t.public_votes, t.total) }}
-              />
+        <div className="flex justify-between font-code-sm text-code-sm">
+          <span className={verdict === "verified" ? "text-primary font-bold" : verdict === "mismatch" ? "text-error font-bold" : "text-outline font-bold"}>
+            {verdict === "verified" ? "[✓ VERIFICADO]" : verdict === "mismatch" ? "[⚠ INCONSISTENTE]" : `[? ${UNKNOWN}]`}
+          </span>
+          <span className="text-outline">modo: {tallyMode}</span>
+        </div>
+        {t && t.total > 0n ? (
+          <>
+            <div className="w-full h-3 bg-surface-container overflow-hidden">
+              <div className="h-full bg-primary transition-all duration-700" style={{ width: pct(t.public_votes, t.total) }} />
             </div>
-            <div className="quorum-bar-labels">
-              <span>0</span>
+            <div className="flex justify-between font-code-sm text-code-sm text-outline">
               <span>PÚBLICOS: {t.public_votes.toString()}</span>
               <span>COMPROMISO: {t.commitment_votes.toString()}</span>
             </div>
-          </div>
-
-          <div className="quorum-dist">
-            <div className="quorum-dist-head">
-              <span className="quorum-dist-label">Distribución registrada en cadena</span>
+            <div className="pt-space-sm space-y-space-sm">
+              <div className="font-code-sm text-code-sm uppercase text-outline font-semibold">Distribución registrada en cadena</div>
+              <div className="w-full h-4 flex overflow-hidden bg-surface-container">
+                {[...t.counts.entries()].map(([choice, n]) => (
+                  <div
+                    key={choice}
+                    className="bg-primary h-full"
+                    style={{ width: pct(n, t.total) }}
+                    title={`Opción ${choice}: ${n.toString()}`}
+                  />
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-space-xs pt-1">
+                {[...t.counts.entries()].map(([choice, n]) => (
+                  <div key={choice} className="p-space-xs bg-surface-container-low">
+                    <span className="font-code-sm text-code-sm text-primary block font-semibold">{pct(n, t.total)}%</span>
+                    <span className="text-on-surface-variant font-body-sm text-body-sm">
+                      Opción {choice} ({n.toString()})
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="quorum-dist-bar">
-              {[...t.counts.entries()].map(([choice, n]) => (
-                <div
-                  className="quorum-dist-seg seg-for"
-                  key={choice}
-                  style={{ width: pct(n, t.total) }}
-                  title={`Opción ${choice}: ${n.toString()}`}
-                />
-              ))}
-            </div>
-            <div className="quorum-dist-legend">
-              {[...t.counts.entries()].map(([choice, n]) => (
-                <div className="legend-item" key={choice}>
-                  <span className="legend-value">{pct(n, t.total)}%</span>
-                  <span className="legend-label">
-                    Opción {choice} ({n.toString()})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="quorum-dist">
-          <div className="unknown">
-            <span className="chip chip-unknown">
-              {tally === null ? "SIN LECTURA" : t ? "SIN VOTOS" : UNKNOWN}
+          </>
+        ) : (
+          <div className="flex items-center gap-space-sm p-space-sm bg-surface-container-low border border-dashed border-outline">
+            <span className="font-code-sm text-code-sm font-bold text-outline">
+              [{tally === null ? "SIN LECTURA" : t ? "SIN VOTOS" : UNKNOWN}]
             </span>
-            <span className="reason">
+            <span className="font-body-sm text-body-sm text-on-surface-variant">
               {tally?.status === "unknown"
                 ? tally.reason
                 : t
@@ -525,21 +566,25 @@ function TallyPanel({
                   : "elige una iniciativa para leer su recuento"}
             </span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="quorum-note">
-        <span className="muted">modo de verificación: {tallyMode}</span>
-        <p className="quorum-disclosure">{commitmentDisclosure(onChainMode)}</p>
+      <div className="space-y-space-xs">
+        <p className="font-body-sm text-body-sm text-on-surface-variant">{commitmentDisclosure(onChainMode)}</p>
         {tally?.status === "ok" && (
-          <ul className="quorum-checks">
-            {tally.value.checks.map((c) => (
-              <li key={c.id} className={`check check-${String(c.state)}`}>
-                <strong>{c.id}</strong>: {c.state === true ? "OK" : c.state === false ? "FALLA" : "DESCONOCIDO"}
-                <span className="muted"> — {c.detail}</span>
-              </li>
-            ))}
-          </ul>
+          <details>
+            <summary className="font-code-sm text-code-sm text-outline cursor-pointer">
+              comprobaciones del verificador ({tally.value.checks.length})
+            </summary>
+            <ul className="pt-space-xs space-y-1 font-code-sm text-code-sm">
+              {tally.value.checks.map((c) => (
+                <li key={c.id} className={c.state === true ? "text-primary" : c.state === false ? "text-error" : "text-outline"}>
+                  <strong>{c.id}</strong>: {c.state === true ? "OK" : c.state === false ? "FALLA" : "DESCONOCIDO"}
+                  <span className="text-on-surface-variant"> — {c.detail}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
     </div>

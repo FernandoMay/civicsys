@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.js";
 import { WalletProvider } from "./lib/wallet.js";
 import { freighterAdapter } from "./lib/freighter.js";
+import "./tailwind.css";
 import "./styles.brujula.css";
 
 const container = document.getElementById("root");

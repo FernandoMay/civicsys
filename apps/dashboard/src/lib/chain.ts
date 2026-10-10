@@ -22,6 +22,7 @@ import {
   type VerificationResult,
 } from "@brugulacivica/sdk";
 import deploymentRaw from "../../../../deployments/testnet.json";
+import { rpc } from "@stellar/stellar-sdk";
 
 // Throws at import time if the evidence record is malformed. That is intended:
 // an unprovable deployment must never boot a dashboard that claims to verify it.
@@ -40,7 +41,25 @@ export const RPC_URL: string =
 
 export const reader = new BrujulaReader(deployment, RPC_URL);
 
+/**
+ * The live ledger sequence, for the header ticker.
+ *
+ * Returns null when the RPC cannot be reached — the UI then shows
+ * DESCONOCIDO, never a hardcoded block number.
+ */
+export async function fetchLatestLedger(): Promise<number | null> {
+  try {
+    const server = new rpc.Server(RPC_URL, { allowHttp: RPC_URL.startsWith("http:") });
+    const { sequence } = await server.getLatestLedger();
+    return typeof sequence === "number" ? sequence : null;
+  } catch {
+    return null;
+  }
+}
+
 export type { CredentialView, Evidence, ProposalView, Read, ReportView, TallyView };
+
+export type ReportEntry = { id: bigint; report: Read<ReportView | null> };
 
 export type ProposalRow = {
   id: bigint;

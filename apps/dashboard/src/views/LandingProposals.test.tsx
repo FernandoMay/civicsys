@@ -151,10 +151,10 @@ describe("Proposals — fail-closed status", () => {
         rows={[row({ status: bad() })]}
         nextId={ok(2n)}
         loading={false}
-        onVote={() => {}}
+        onOpen={() => {}}
       />,
     );
-    expect(screen.getByText("DESCONOCIDO")).toBeInTheDocument();
+    expect(screen.getByText(/DESCONOCIDO/)).toBeInTheDocument();
     expect(screen.queryByText(/PROGRAMADA/)).toBeNull();
   });
 
@@ -164,7 +164,7 @@ describe("Proposals — fail-closed status", () => {
         rows={[row({ id: 1n, proposal: ok(proposal()) })]}
         nextId={ok(2n)}
         loading={false}
-        onVote={() => {}}
+        onOpen={() => {}}
       />,
     );
     expect(screen.getByText("ID #1")).toBeInTheDocument();
@@ -177,10 +177,10 @@ describe("Proposals — fail-closed status", () => {
         rows={[row({ proposal: bad("nodo caído") })]}
         nextId={ok(2n)}
         loading={false}
-        onVote={() => {}}
+        onOpen={() => {}}
       />,
     );
-    expect(screen.getByText("SIN LECTURA")).toBeInTheDocument();
+    expect(screen.getByText(/SIN LECTURA/)).toBeInTheDocument();
     expect(screen.getByText(/nodo caído/)).toBeInTheDocument();
   });
 
@@ -190,7 +190,7 @@ describe("Proposals — fail-closed status", () => {
         rows={[row({ proposal: ok(null) })]}
         nextId={ok(2n)}
         loading={false}
-        onVote={() => {}}
+        onOpen={() => {}}
       />,
     );
     expect(screen.getByText(/NO EXISTE/)).toBeInTheDocument();
@@ -198,26 +198,26 @@ describe("Proposals — fail-closed status", () => {
 
   it("disables voting when the proposal is not open", () => {
     render(
-      <Proposals rows={[row({ status: ok(2) })]} nextId={ok(2n)} loading={false} onVote={() => {}} />,
+      <Proposals rows={[row({ status: ok(2) })]} nextId={ok(2n)} loading={false} onOpen={() => {}} />,
     );
-    expect(screen.getByRole("button", { name: /Votación no disponible/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Inspeccionar en cadena/i })).toBeDisabled();
   });
 
   it("enables voting and forwards the real id when open", async () => {
     const user = userEvent.setup();
-    const onVote = vi.fn();
+    const onOpen = vi.fn();
     render(
-      <Proposals rows={[row({ status: ok(1) })]} nextId={ok(2n)} loading={false} onVote={onVote} />,
+      <Proposals rows={[row({ status: ok(1) })]} nextId={ok(2n)} loading={false} onOpen={onOpen} />,
     );
     const btn = screen.getByRole("button", { name: /Votar en esta iniciativa/i });
     expect(btn).toBeEnabled();
     await user.click(btn);
-    expect(onVote).toHaveBeenCalledWith(1n);
+    expect(onOpen).toHaveBeenCalledWith(1n);
   });
 
   it("says why it cannot show proposals when next_id is unreadable", () => {
     render(
-      <Proposals rows={[]} nextId={bad("nodo sin respuesta")} loading={false} onVote={() => {}} />,
+      <Proposals rows={[]} nextId={bad("nodo sin respuesta")} loading={false} onOpen={() => {}} />,
     );
     expect(screen.getAllByText(/nodo sin respuesta/).length).toBeGreaterThan(0);
   });
@@ -232,7 +232,7 @@ describe("Proposals — fail-closed status", () => {
         ]}
         nextId={ok(3n)}
         loading={false}
-        onVote={() => {}}
+        onOpen={() => {}}
       />,
     );
     expect(screen.getByText("ID #1")).toBeInTheDocument();

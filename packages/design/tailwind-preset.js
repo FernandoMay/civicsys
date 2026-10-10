@@ -61,6 +61,21 @@ export default {
         'inverse-on-surface': tokens.color['inverse-on-surface'].value,
         'inverse-primary': tokens.color['inverse-primary'].value,
 
+        // Fixed variants (homologated UI accents)
+        'secondary-fixed': tokens.color['secondary-fixed'].value,
+        'secondary-fixed-dim': tokens.color['secondary-fixed-dim'].value,
+        'on-secondary-fixed': tokens.color['on-secondary-fixed'].value,
+        'on-secondary-fixed-variant': tokens.color['on-secondary-fixed-variant'].value,
+        'primary-fixed': tokens.color['primary-fixed'].value,
+        'primary-fixed-dim': tokens.color['primary-fixed-dim'].value,
+        'on-primary-fixed': tokens.color['on-primary-fixed'].value,
+        'on-primary-fixed-variant': tokens.color['on-primary-fixed-variant'].value,
+        'tertiary-fixed': tokens.color['tertiary-fixed'].value,
+        'tertiary-fixed-dim': tokens.color['tertiary-fixed-dim'].value,
+        'on-tertiary-fixed': tokens.color['on-tertiary-fixed'].value,
+        'on-tertiary-fixed-variant': tokens.color['on-tertiary-fixed-variant'].value,
+        'on-background': tokens.color['on-background'].value,
+
         // Background
         background: tokens.color.surface.base.value,
       },
