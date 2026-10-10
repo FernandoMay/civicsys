@@ -1,16 +1,16 @@
-# CivicSys — FAQ
+# Brújula Cívica — FAQ
 
 Short answers, evidence-backed. Anything not yet true is marked as such
-(RFC CIVICSYS-ARCH-001 §0.2: "no feature ships with a claim the product cannot
+(RFC BRUJULA-CIVICA-ARCH-001 §0.2: "no feature ships with a claim the product cannot
 prove").
 
-## What is CivicSys?
+## What is Brújula Cívica?
 
 Infrastructure for verifiable civic participation: credentials, proposals,
 votes and accountability reports anchored on **Stellar/Soroban**, read back
 through a fail-closed SDK and rendered with explicit evidence states. The
 frozen product definition and architecture live in
-[docs/rfc/CIVICSYS-ARCH-001.md](rfc/CIVICSYS-ARCH-001.md).
+[docs/rfc/BRUJULA-CIVICA-ARCH-001.md](rfc/BRUJULA-CIVICA-ARCH-001.md).
 
 ## What is real and running right now?
 
@@ -21,7 +21,7 @@ frozen product definition and architecture live in
   public vote cast → tally read and **verified by the real verifier**
   (`verdict: verified`, 6/6 checks) → report anchored
   ([../deployments/smoke-test.json](../deployments/smoke-test.json)).
-- **`@civicsys/sdk`**: fail-closed reads + pure tally verifier — offline unit
+- **`@brugulacivica/sdk`**: fail-closed reads + pure tally verifier — offline unit
   tests and live testnet tests both green.
 - **Dashboard** rendering live reads with `VERIFIED` / `UNKNOWN` states.
 - **4 funded testnet identities** for future citizen/voter E2E runs
@@ -43,7 +43,7 @@ Full checklist with status: [definition-of-done.md](definition-of-done.md).
 
 ## Why does the UI show UNKNOWN instead of a value?
 
-Because CivicSys is **fail-closed**: when a fact cannot be proven from chain
+Because Brújula Cívica is **fail-closed**: when a fact cannot be proven from chain
 state *right now*, the honest answer is `unknown` with a reason — never a
 default, never a guess. Examples: a proposal with no tally yet, a proposal id
 that does not exist, an RPC read that failed, or a hypothetical `zk_*` mode
@@ -80,7 +80,7 @@ Details: [state-diagram.md](state-diagram.md) §5.
 
 ```bash
 ./scripts/verify-deployment.sh deployments/testnet.json --live  # contracts answer on-chain
-pnpm --filter @civicsys/sdk test:live                           # SDK reads real contracts
+pnpm --filter @brugulacivica/sdk test:live                           # SDK reads real contracts
 pnpm test:funding                                               # 4 neighbors funded vs Horizon
 ./scripts/smoke-test.sh                                         # full loop + verifier verdict
 node scripts/tally-verdict.mjs 2                                # verdict for proposal 2
@@ -105,8 +105,8 @@ Every command fails non-zero if the evidence does not hold.
 ```bash
 pnpm install
 pnpm dev                 # dashboard (Vite)
-pnpm --filter @civicsys/sdk test          # offline verifier tests
-pnpm --filter @civicsys/sdk test:live     # live testnet reads (network)
+pnpm --filter @brugulacivica/sdk test          # offline verifier tests
+pnpm --filter @brugulacivica/sdk test:live     # live testnet reads (network)
 ```
 
 Requires Node ≥ 20, pnpm 9, and (for contracts) Rust + the Stellar CLI.

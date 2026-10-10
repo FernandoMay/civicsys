@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CivicSys — fund real Stellar **testnet** neighbor accounts.
+ * Brújula Cívica — fund real Stellar **testnet** neighbor accounts.
  *
  * Purpose (roadmap: "Fund 4 real testnet neighbor accounts"):
  *   create (if needed) and fund 4 independent testnet identities that can act
@@ -30,10 +30,10 @@ const HORIZON = "https://horizon-testnet.stellar.org";
 
 /** The four neighbor identities (names local to this machine's keystore). */
 const NEIGHBORS = [
-  "civicsys-neighbor-1",
-  "civicsys-neighbor-2",
-  "civicsys-neighbor-3",
-  "civicsys-neighbor-4",
+  "brujula-neighbor-1",
+  "brujula-neighbor-2",
+  "brujula-neighbor-3",
+  "brujula-neighbor-4",
 ];
 
 /** friendbot funds fresh accounts with 10 000 XLM; require a solid floor. */
@@ -153,7 +153,7 @@ async function ensureFunded(name: string): Promise<Evidence> {
 }
 
 async function main(): Promise<void> {
-  console.log(`CivicSys neighbor funding — Stellar TESTNET (${HORIZON})`);
+  console.log(`Brújula Cívica neighbor funding — Stellar TESTNET (${HORIZON})`);
   console.log(`neighbors: ${NEIGHBORS.join(", ")}\n`);
 
   const accounts: Evidence[] = [];
@@ -162,7 +162,7 @@ async function main(): Promise<void> {
   }
 
   const record = {
-    schema: "civicsys/testnet-neighbors@1",
+    schema: "brujula-civica/testnet-neighbors@1",
     network: "testnet",
     horizon: HORIZON,
     generated_at: nowIso(),

@@ -1,15 +1,25 @@
 name: CI
 
-# CivicSys CI — evidence-first (RFC CIVICSYS-ARCH-001 §10):
+# Brújula Cívica CI — evidence-first (RFC BRUJULA-CIVICA-ARCH-001 §10):
 # a change is mergeable only when contracts compile to wasm, all tests pass,
 # clippy -D warnings is clean, the deployment record still verifies against
-# the artifacts, and (separately) the deployed contracts answer live on testnet.
+# the artifacts, the dashboard builds, and (separately) the deployed contracts
+# answer live on testnet.
+#
+# Toolchains are PINNED to the exact versions that produced the wasm sha256
+# recorded in deployments/testnet.json (RFC §9). Bumping either one invalidates
+# that evidence and requires re-running scripts/deploy-testnet.sh and
+# re-committing the record. "latest" would break reproducibility silently.
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
+env:
+  RUST_VERSION: "1.99.0"
+  STELLAR_VERSION: "28.1.0"
 
 jobs:
   contracts:
@@ -18,19 +28,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Pinned to the version that produced deployments/testnet.json so the
-      # wasm sha256 is reproducible (RFC §9). Bump deliberately, then re-run
-      # scripts/deploy-testnet.sh and commit the new evidence.
       - uses: dtolnay/rust-toolchain@1.94.0
         with:
           targets: wasm32v1-none
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install Stellar CLI (official release)
+      - name: Install Stellar CLI (pinned)
         run: |
-          VER=$(curl -s https://api.github.com/repos/stellar/stellar-cli/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          set -euo pipefail
           curl -sSfL -o /tmp/stellar.tar.gz \
-            "https://github.com/stellar/stellar-cli/releases/download/v${VER}/stellar-cli-${VER}-x86_64-unknown-linux-gnu.tar.gz"
+            "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_VERSION}/stellar-cli-${STELLAR_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
           sudo tar -xzf /tmp/stellar.tar.gz -C /usr/local/bin stellar
           stellar --version
 
@@ -39,7 +47,7 @@ jobs:
       - name: Clippy (warnings are errors)
         run: cargo clippy --all-targets -- -D warnings
       - name: Contract tests
-        run: cargo test
+        run: cargo test --workspace
       - name: Build wasm artifacts
         run: stellar contract build
       - name: Artifact hashes
@@ -48,11 +56,11 @@ jobs:
         run: ./scripts/verify-deployment.sh deployments/testnet.json
       - uses: actions/upload-artifact@v4
         with:
-          name: civicsys-wasm
+          name: brugulacivica-wasm
           path: target/wasm32v1-none/release/*.wasm
 
-  sdk-and-dashboard:
-    name: SDK + dashboard — typecheck, unit tests, build
+  sdk:
+    name: SDK — typecheck, offline tests, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,14 +70,30 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Typecheck (sdk + dashboard)
-        run: pnpm -r typecheck
+      - run: pnpm --filter @brugulacivica/sdk typecheck
       - name: SDK unit tests (offline, pure verifier logic)
-        run: pnpm --filter @civicsys/sdk test
+        run: pnpm --filter @brugulacivica/sdk test
       - name: Build sdk
-        run: pnpm --filter @civicsys/sdk build
+        run: pnpm --filter @brugulacivica/sdk build
+
+  dashboard:
+    name: Dashboard — typecheck, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @brugulacivica/sdk build
+      - name: Typecheck
+        run: pnpm --filter @brugulacivica/dashboard typecheck
+      - name: Dashboard tests (fail-closed rendering, wallet boundary)
+        run: pnpm --filter @brugulacivica/dashboard test
       - name: Build dashboard
-        run: pnpm --filter @civicsys/dashboard build
+        run: pnpm --filter @brugulacivica/dashboard build
 
   testnet-live:
     name: Live testnet — deployment evidence + fail-closed reads
@@ -81,17 +105,18 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Install Stellar CLI (official release)
+      - name: Install Stellar CLI (pinned)
         run: |
-          VER=$(curl -s https://api.github.com/repos/stellar/stellar-cli/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          set -euo pipefail
           curl -sSfL -o /tmp/stellar.tar.gz \
-            "https://github.com/stellar/stellar-cli/releases/download/v${VER}/stellar-cli-${VER}-x86_64-unknown-linux-gnu.tar.gz"
+            "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_VERSION}/stellar-cli-${STELLAR_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
           sudo tar -xzf /tmp/stellar.tar.gz -C /usr/local/bin stellar
           stellar --version
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @brugulacivica/sdk build
       - name: Verify deployment evidence live on-chain (contract answers)
         run: ./scripts/verify-deployment.sh deployments/testnet.json --live
       - name: SDK live reads (fail-closed behavior against real contracts)
-        run: pnpm --filter @civicsys/sdk test:live
+        run: pnpm --filter @brugulacivica/sdk test:live
       - name: Neighbor funding evidence (Horizon, fail-closed)
-        run: pnpm --filter @civicsys/sdk test:funding
+        run: pnpm --filter @brugulacivica/sdk test:funding

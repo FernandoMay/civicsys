@@ -1,15 +1,15 @@
-# CivicSys
+# Brújula Cívica
 
 **Civic decisions. Verifiable by design.**
 
-CivicSys is verifiable civic-participation infrastructure:
+Brújula Cívica is verifiable civic-participation infrastructure:
 *propose → deliberate → decide → verify*. It is not "blockchain for
 elections" — it is an open infrastructure layer where participation,
 evidence, decisions and accountability can be **independently verified**.
 
-> CivicSys doesn't ask you to trust the system. It gives you evidence to verify it.
+> Brújula Cívica doesn't ask you to trust the system. It gives you evidence to verify it.
 
-Source of truth: [`docs/rfc/CIVICSYS-ARCH-001.md`](docs/rfc/CIVICSYS-ARCH-001.md)
+Source of truth: [`docs/rfc/BRUJULA-CIVICA-ARCH-001.md`](docs/rfc/BRUJULA-CIVICA-ARCH-001.md)
 · Threat model: [`docs/threat-model.md`](docs/threat-model.md) ·
 Definition of done: [`docs/definition-of-done.md`](docs/definition-of-done.md) ·
 State diagrams: [`docs/state-diagram.md`](docs/state-diagram.md) ·
@@ -31,13 +31,13 @@ FAQ: [`docs/faq.md`](docs/faq.md)
 
 ```
         IDENTITY            DELIBERATION           DECISION
-     CivicIdentity             Hermes            CivicProposal
+     BrujulaIdentity             Hermes            BrujulaProposal
      commitments            (Phase 3)            content + CID
      eligibility                                   window
           │                     │                     │
           └──────────┬──────────┴──────────┬──────────┘
                      │                     │
-               CivicVote ◄────────► CivicAccountability
+               BrujulaVote ◄────────► BrujulaAccountability
                ballots/nullifier/  immutable report hashes
                tally                    │
                      └──── Stellar / Soroban ──── TX / events ──► PUBLIC VERIFIER
@@ -48,10 +48,10 @@ Four small contracts (never one god-contract), Soroban SDK 25:
 
 | Contract | Responsibility | Crate |
 |---|---|---|
-| `CivicIdentity` | credential commitments, eligibility, revocation | [`contracts/civic-identity`](contracts/civic-identity) |
-| `CivicProposal` | provenance: hashes + CID + open/close window | [`contracts/civic-proposal`](contracts/civic-proposal) |
-| `CivicVote` | ballots, nullifiers, tally, honest mode labels | [`contracts/civic-vote`](contracts/civic-vote) |
-| `CivicAccountability` | append-only report anchoring | [`contracts/civic-accountability`](contracts/civic-accountability) |
+| `BrujulaIdentity` | credential commitments, eligibility, revocation | [`contracts/brujula-identity`](contracts/brujula-identity) |
+| `BrujulaProposal` | provenance: hashes + CID + open/close window | [`contracts/brujula-proposal`](contracts/brujula-proposal) |
+| `BrujulaVote` | ballots, nullifiers, tally, honest mode labels | [`contracts/brujula-vote`](contracts/brujula-vote) |
+| `BrujulaAccountability` | append-only report anchoring | [`contracts/brujula-accountability`](contracts/brujula-accountability) |
 
 ## Live evidence — Stellar Testnet
 
@@ -59,29 +59,31 @@ Committed machine-readable records: [`deployments/testnet.json`](deployments/tes
 · [`deployments/smoke-test.json`](deployments/smoke-test.json)
 · [`deployments/testnet-neighbors.json`](deployments/testnet-neighbors.json)
 
-### Deployments (v0.1.0, 2026-10-08)
+### Deployments (v0.1.0, 2026-10-10)
+
+Deployed with rustc 1.99.0 + Stellar CLI 28.1.0 (both pinned in CI — bumping
+either invalidates these wasm hashes and requires a re-deploy).
 
 | Contract | Contract ID | Deploy tx | Ledger |
 |---|---|---|---|
-| civic-identity | [`CDOOF4WZVM77IFLPP3RN7S5LCWUCR57LJ325OZMLD2D5OFSIPUL4WDNU`](https://stellar.expert/explorer/testnet/contract/CDOOF4WZVM77IFLPP3RN7S5LCWUCR57LJ325OZMLD2D5OFSIPUL4WDNU) | [`5816c57c…e2f1867b`](https://stellar.expert/explorer/testnet/tx/5816c57c0d5178639b943fb700b4cdce4bd0bc899b214b5e5f421c20e2f1867b) | 5094327 |
-| civic-proposal | [`CBDCXSSLCGJW53HU5URXMERNGY342ECABFWU6PH4LBSMEMLM7BLK4DOF`](https://stellar.expert/explorer/testnet/contract/CBDCXSSLCGJW53HU5URXMERNGY342ECABFWU6PH4LBSMEMLM7BLK4DOF) | [`07dbb670…5a7a718b`](https://stellar.expert/explorer/testnet/tx/07dbb6706db18ce333e23bdc17e11a60648b02a1d18648d7ea648f065a7a718b) | 5094330 |
-| civic-vote | [`CCOAEQ7ZHMRVMZYJLVAGLRITSBE73JJDI4EYS4NEZQ7XKLXJMQ35SBTZ`](https://stellar.expert/explorer/testnet/contract/CCOAEQ7ZHMRVMZYJLVAGLRITSBE73JJDI4EYS4NEZQ7XKLXJMQ35SBTZ) | [`e0238f7c…113a57e5`](https://stellar.expert/explorer/testnet/tx/e0238f7cc1695d382fc75607d351c286ffeb1ddc1f7e174b21f828e9113a57e5) | 5094336 |
-| civic-accountability | [`CDYL4GI6ZRMZDVJAZCTCU2O5RQXPYL3472M4YEM544HKYUFWT5TNKT5S`](https://stellar.expert/explorer/testnet/contract/CDYL4GI6ZRMZDVJAZCTCU2O5RQXPYL3472M4YEM544HKYUFWT5TNKT5S) | [`ce0ae7b0…f504d92ff`](https://stellar.expert/explorer/testnet/tx/ce0ae7b096413e3f5ca16419e59aa967c48d4aed1f8db5985bc9417f504d92ff) | 5094334 |
+| brujula-identity | [`CDKXTP2VRA4HPFTF6HZWA2WKLIBUXYQVFWUGCUQPEZQO4BEVURCFVK7Z`](https://stellar.expert/explorer/testnet/contract/CDKXTP2VRA4HPFTF6HZWA2WKLIBUXYQVFWUGCUQPEZQO4BEVURCFVK7Z) | [`b78b94b8…cb7bb3`](https://stellar.expert/explorer/testnet/tx/b78b94b8d3e426113a8ac538baf6e0ee2dd95b3775f9c9937e6e8c0810cb7bb3) | 5126941 |
+| brujula-proposal | [`CDJZFBBIQZXLEZ53NYLOSVGBQRDHJ4GXIB5DMOC2TGKOXQRE2ZHP6OUW`](https://stellar.expert/explorer/testnet/contract/CDJZFBBIQZXLEZ53NYLOSVGBQRDHJ4GXIB5DMOC2TGKOXQRE2ZHP6OUW) | [`3c033172…c94a85`](https://stellar.expert/explorer/testnet/tx/3c03317235ff9751c311eaeed2982c790d80dbdfa94b4cd44301f9dd42c94a85) | 5126943 |
+| brujula-vote | [`CBEB743ZX6CCLYHA33YALQ7WLONJ6ZUYYE44CUFXXGCBQNSWUUHUJTQV`](https://stellar.expert/explorer/testnet/contract/CBEB743ZX6CCLYHA33YALQ7WLONJ6ZUYYE44CUFXXGCBQNSWUUHUJTQV) | [`0ee4e772…7a7505`](https://stellar.expert/explorer/testnet/tx/0ee4e772f7ff942b358d2f9030987324b1ee0e42d94cfbe846222ff4507a7505) | 5126948 |
+| brujula-accountability | [`CDFUVDSQLA4EM5DX3ZC2KXX5SKXAQNKP4J64M34DPQYAYBXEVO5SKJ6N`](https://stellar.expert/explorer/testnet/contract/CDFUVDSQLA4EM5DX3ZC2KXX5SKXAQNKP4J64M34DPQYAYBXEVO5SKJ6N) | [`8bdbff8a…e603ec`](https://stellar.expert/explorer/testnet/tx/8bdbff8abd6433ccbe7f47d0bee04183872293eab8ff20db5a13564c5ce603ec) | 5126946 |
 
 ### End-to-end smoke test (credential → proposal → vote → tally → report)
 
-Latest run — proposal **#3**, exactly as recorded in `deployments/smoke-test.json`:
+Latest run — proposal **#1** against the deployments above, exactly as recorded
+in `deployments/smoke-test.json`:
 
 | Step | Evidence |
 |---|---|
-| Issue credential (idempotent re-run) | credential proven on-chain with commitment `a391ad4f…8b3756` via `node scripts/read-credential.mjs`; first issuance tx [`934e4e44…edb268616`](https://stellar.expert/explorer/testnet/tx/934e4e44a0a3295bf3f78ff4772562c87a3d5ec6aa3988a8b9a4be3edb268616) |
-| Create proposal #3 (window OPEN) | tx [`2e6abb6c…a8307bce`](https://stellar.expert/explorer/testnet/tx/2e6abb6c20d02a6b85799f32983cc5016e272089e1aa7201421cd809a8307bce) |
-| Cast public vote (eligibility-gated) | tx [`b2ce2156…d710ef3`](https://stellar.expert/explorer/testnet/tx/b2ce2156a333f4e4bb45b64b763d1a25b639981e404f1bdb602867174d710ef3) |
+| Issue credential | commitment `bad1553b…913ce2`, issuance tx [`253523e1…104d32`](https://stellar.expert/explorer/testnet/tx/253523e13fe89fcc57054588f627d67838858ec31a3e1b6a21bc018458104d32) |
+| Create proposal #1 (window OPEN) | tx [`74326087…d12edd`](https://stellar.expert/explorer/testnet/tx/7432608767b06a06a8b3948d5467c6ee889f5fb4bbbbe42e698133a544d12edd) |
+| Cast public vote (eligibility-gated) | tx [`1af3c997…8b8404`](https://stellar.expert/explorer/testnet/tx/1af3c997f2b34bc909f7776cb6432e593e7eb7de46e7da6c3e6cbfd7ba6b8404) |
 | Tally read back + verified | `total=1, counts={0:1}, public_v1` → **`verdict: verified` (6/6 checks)**, `vote_count: 1` written into the evidence file by the real verifier (`scripts/tally-verdict.mjs`) |
-| Anchor accountability report #3 | tx [`4261da4f…a595e34f`](https://stellar.expert/explorer/testnet/tx/4261da4f0e72a195b11cb38b8e6f4169a90c7ee2b045a427c85cb0e8a595e34f) |
+| Anchor accountability report #1 | tx [`0363a7de…0657a81c`](https://stellar.expert/explorer/testnet/tx/0363a7de37b7ce3cf8d253b4239556df886b573d24a4005c7665b9001657a81c) |
 
-The first run (proposal **#1**, txs `934e4e44…`, `c81ff0bd…`, `025dc14d…`,
-`cb01c2ae…`) remains verifiable on-chain and in git history.
 Reproduce the full loop: `./scripts/smoke-test.sh` (writes
 `deployments/smoke-test.json`; re-runs are idempotent — already-issued and
 already-cast steps are **proved by on-chain reads**, not by parsing error text).
@@ -89,14 +91,14 @@ already-cast steps are **proved by on-chain reads**, not by parsing error text).
 ## Repository
 
 ```
-civicsys/
-├── docs/rfc/CIVICSYS-ARCH-001.md   # frozen architecture — source of truth
+brujula-civica/
+├── docs/rfc/BRUJULA-CIVICA-ARCH-001.md   # frozen architecture — source of truth
 ├── docs/threat-model.md             # assets, threats, residual risks
 ├── docs/definition-of-done.md       # per-phase evidence checklist
 ├── docs/state-diagram.md            # every state machine + disabled states
 ├── docs/faq.md                      # honest Q&A (real vs not built)
 ├── contracts/                       # Rust workspace: 4 Soroban contracts
-├── packages/sdk/                    # @civicsys/sdk — fail-closed reads + verifier
+├── packages/sdk/                    # @brugulacivica/sdk — fail-closed reads + verifier
 ├── apps/dashboard/                  # Vite + React verifier UI (fail-closed)
 ├── scripts/                         # deploy / verify / smoke / fund (evidence-first)
 └── deployments/                     # committed evidence records
@@ -104,20 +106,22 @@ civicsys/
 
 ## Quickstart
 
-Prereqs: Rust (stable), `stellar` CLI, Node ≥ 20 + pnpm 9, `jq`.
+Prereqs: Rust (stable, pinned 1.99.0), `stellar` CLI (pinned 28.1.0),
+Node ≥ 20 + pnpm 9, `jq`.
 
 ```bash
 # contracts
-cargo test                                   # 28 tests
-stellar contract build                        # 4 wasm artifacts + hashes
+cargo test                                   # 49 tests
+stellar contract build                       # 4 wasm artifacts + hashes
 
 # sdk
 pnpm install
-pnpm --filter @civicsys/sdk test              # 16 offline verifier tests
-pnpm --filter @civicsys/sdk test:live         # 7 live testnet reads
-pnpm --filter @civicsys/sdk test:funding      # 4 funded neighbors vs Horizon (fail-closed)
+pnpm --filter @brugulacivica/sdk test              # 27 offline verifier tests
+pnpm --filter @brugulacivica/sdk test:live         # 7 live testnet reads
+pnpm --filter @brugulacivica/sdk test:funding      # 4 funded neighbours checked vs Horizon (fail-closed)
 
 # dashboard (fail-closed UI against testnet)
+pnpm --filter @brugulacivica/dashboard test   # 38 render + wallet-boundary tests
 pnpm dev                                      # http://127.0.0.1:5173
 
 # evidence
@@ -132,15 +136,19 @@ pnpm dev                                      # http://127.0.0.1:5173
 pnpm fund:neighbors                            # writes deployments/testnet-neighbors.json
 ```
 
+The dashboard needs a wallet extension (Freighter) to sign a ballot. Everything
+else — reading proposals, tallies, credentials and anchored reports — is
+public and works with no wallet at all.
+
 Anyone can verify without our tooling: open the tx/contract links above in
 Stellar Explorer and recompute `sha256sum` of the wasm artifacts.
 
 ## SDK usage
 
 ```ts
-import { CivicReader, loadDeployment, verifyTally } from "@civicsys/sdk/node";
+import { BrujulaReader, loadDeployment, verifyTally } from "@brugulacivica/sdk/node";
 
-const reader = new CivicReader(loadDeployment("deployments/testnet.json"));
+const reader = new BrujulaReader(loadDeployment("deployments/testnet.json"));
 
 const status = await reader.proposalStatus(1n);
 // → { status: "ok", value: 1, evidence: { contractId, ledger, fetchedAt } }

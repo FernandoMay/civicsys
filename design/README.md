@@ -1,8 +1,8 @@
-# CivicSys Design System
+# Brújula Cívica Design System
 
 ## Brand foundation
 
-CivicSys design system based on "Civic decisions. Verifiable by design." with the core principle "Evidence before conclusions."
+Brújula Cívica design system based on "Civic decisions. Verifiable by design." with the core principle "Evidence before conclusions."
 
 ## Core colors
 - **Paper** `#F7F7F3` — Background
@@ -25,4 +25,4 @@ CivicSys design system based on "Civic decisions. Verifiable by design." with th
 - [assets/logo-symbol.svg](./assets/logo-symbol.svg) — Logo symbol
 
 ## Usage in dashboard
-The dashboard currently uses its own styles; when applying the new system, preserve all on-chain reads and fail-closed behavior. Verification states must remain computed via `@civicsys/sdk` verifier.
+The dashboard currently uses its own styles; when applying the new system, preserve all on-chain reads and fail-closed behavior. Verification states must remain computed via `@brugulacivica/sdk` verifier.

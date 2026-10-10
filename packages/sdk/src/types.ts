@@ -1,7 +1,7 @@
 /**
- * CivicSys SDK — fail-closed read envelopes and domain views.
+ * Brújula Cívica SDK — fail-closed read envelopes and domain views.
  *
- * Fail-closed rule (RFC CIVICSYS-ARCH-001 §0/§6): whenever state cannot be
+ * Fail-closed rule (RFC BRUJULA-CIVICA-ARCH-001 §0/§6): whenever state cannot be
  * read or parsed from the chain, the SDK returns `status: "unknown"` with a
  * reason. It never fabricates defaults, zeros, or optimistic values.
  */
@@ -39,7 +39,7 @@ export function isOk<T>(r: Read<T>): r is OkRead<T> {
   return r.status === "ok";
 }
 
-/** Mirrors on-chain `Credential` (civic-identity §3.1). */
+/** Mirrors on-chain `Credential` (brujula-identity §3.1). */
 export interface CredentialView {
   subject: string;
   commitment: string; // hex
@@ -56,7 +56,7 @@ export const CREDENTIAL_STATUS = {
   REVOKED: 2,
 } as const;
 
-/** Mirrors on-chain `Proposal` (civic-proposal §3.2). */
+/** Mirrors on-chain `Proposal` (brujula-proposal §3.2). */
 export interface ProposalView {
   id: bigint;
   proposer: string;
@@ -83,7 +83,7 @@ export const PROPOSAL_STATUS = {
 
 export const PROPOSAL_STATUS_LABEL = ["SCHEDULED", "OPEN", "CLOSED", "CANCELLED"] as const;
 
-/** Mirrors on-chain `Tally` (civic-vote §3.3). */
+/** Mirrors on-chain `Tally` (brujula-vote §3.3). */
 export interface TallyView {
   proposal_id: bigint;
   total: bigint;
@@ -98,7 +98,7 @@ export interface TallyView {
   verification_mode: string;
 }
 
-/** Mirrors on-chain `Report` (civic-accountability §3.4). */
+/** Mirrors on-chain `Report` (brujula-accountability §3.4). */
 export interface ReportView {
   id: bigint;
   proposal_id: bigint;
@@ -130,9 +130,9 @@ export interface DeploymentRecord {
 }
 
 export const CONTRACT_NAMES = [
-  "civic-identity",
-  "civic-proposal",
-  "civic-vote",
-  "civic-accountability",
+  "brujula-identity",
+  "brujula-proposal",
+  "brujula-vote",
+  "brujula-accountability",
 ] as const;
 export type ContractName = (typeof CONTRACT_NAMES)[number];

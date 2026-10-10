@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CivicSys — end-to-end smoke test on testnet.
+# Brújula Cívica — end-to-end smoke test on testnet.
 #
 # Exercises the full MVP loop against the REAL deployed contracts:
 #   issue credential → create proposal → cast public vote → read tally
@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 NETWORK="testnet"
-KEY="${CIVICSYS_DEPLOYER:-civicsys-deployer}"
+KEY="${BRUJULA_CIVICA_DEPLOYER:-brujula-deployer}"
 DEPLOY="deployments/testnet.json"
 LOG_DIR="deployments/logs"
 OUT="deployments/smoke-test.json"
@@ -28,10 +28,10 @@ die()  { echo "FATAL: $*" >&2; exit 1; }
 command -v jq >/dev/null || die "jq required"
 
 cid_of() { jq -r ".contracts[\"$1\"].contract_id" "$DEPLOY"; }
-IDENTITY="$(cid_of civic-identity)"
-PROPOSAL="$(cid_of civic-proposal)"
-VOTE="$(cid_of civic-vote)"
-ACCOUNTABILITY="$(cid_of civic-accountability)"
+IDENTITY="$(cid_of brujula-identity)"
+PROPOSAL="$(cid_of brujula-proposal)"
+VOTE="$(cid_of brujula-vote)"
+ACCOUNTABILITY="$(cid_of brujula-accountability)"
 ADMIN="$(stellar keys address "$KEY")"
 
 sha256_hex() { printf '%s' "$1" | shasum -a 256 | awk '{print $1}'; }
@@ -56,7 +56,7 @@ echo "identity: $IDENTITY"; echo "proposal: $PROPOSAL"
 echo "vote:     $VOTE"; echo "accountability: $ACCOUNTABILITY"
 
 step "1/6 issue credential to the deployer"
-COMMITMENT="$(sha256_hex "civicsys/smoke/commitment/$ADMIN")"
+COMMITMENT="$(sha256_hex "brujula-civica/smoke/commitment/$ADMIN")"
 L="$LOG_DIR/smoke-issue.log"
 if ! invoke "$L" "$IDENTITY" issue \
   --subject "$ADMIN" \
@@ -77,10 +77,10 @@ echo "issue_tx: ${ISSUE_TX:-UNKNOWN (re-run: credential pre-existed)}"
 step "2/6 create proposal (window: past → +1h, so voting is open now)"
 NOW="$(date -u +%s)"
 TITLE_HASH="$(sha256_hex "Smoke Test Proposal: should the pipeline be considered live?")"
-DESC_HASH="$(sha256_hex "Created by scripts/smoke-test.sh to prove the CivicSys loop end-to-end on Stellar testnet.")"
+DESC_HASH="$(sha256_hex "Created by scripts/smoke-test.sh to prove the Brújula Cívica loop end-to-end on Stellar testnet.")"
 META_HASH="$(sha256_hex '{"kind":"smoke-test"}')"
 CID="bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
-EVIDENCE_ROOT="$(sha256_hex "civicsys/smoke/evidence-root/$NOW")"
+EVIDENCE_ROOT="$(sha256_hex "brujula-civica/smoke/evidence-root/$NOW")"
 L="$LOG_DIR/smoke-create.log"
 PROPOSAL_ID="$(invoke "$L" "$PROPOSAL" create \
   --proposer "$ADMIN" \
@@ -126,7 +126,7 @@ echo "status: $STATUS_RAW (1 = OPEN)"
 # Real verifier verdict — never a decorative label: run the SDK's actual
 # tally verifier against a fresh chain read. vote_count comes from that same
 # verified read. Fail closed unless every check proves consistency.
-[ -d packages/sdk/dist ] || pnpm --filter @civicsys/sdk build || die "SDK build failed (required for the verdict step)"
+[ -d packages/sdk/dist ] || pnpm --filter @brugulacivica/sdk build || die "SDK build failed (required for the verdict step)"
 L="$LOG_DIR/smoke-verdict.log"
 VERDICT_JSON="$(node scripts/tally-verdict.mjs "$PROPOSAL_ID" 2>"$L")" || { cat "$L" >&2; die "tally-verdict.mjs failed"; }
 VOTE_COUNT="$(jq -r '.vote_count' <<<"$VERDICT_JSON")"
@@ -166,7 +166,7 @@ jq -n \
   --arg report_hash "$REPORT_HASH" \
   --arg evidence_hash "$EV_HASH" \
   '{
-    schema: "civicsys/smoke-test@1",
+    schema: "brujula-civica/smoke-test@1",
     generated_at: $generated,
     admin: $admin,
     credential_commitment: $commitment,

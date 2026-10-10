@@ -1,9 +1,9 @@
-# CivicSys — Brand Board
+# Brújula Cívica — Brand Board
 
 ## 1. Identity
 
-**Name**: CivicSys  
-**Full name**: CivicSys (Civic System)  
+**Name**: Brújula Cívica  
+**Full name**: Brújula Cívica (Brújula Cívica)  
 **Tagline**: "Civic decisions. Verifiable by design."  
 **Principle**: "Evidence before conclusions."  
 **Tone**: Institutional, precise, transparent. Editorial with technical credibility.
@@ -14,7 +14,7 @@ Infrastructure for verifiable civic participation, where evidence anchors every 
 ## 2. Logo & Symbol
 
 ### Symbol
-The CivicSys symbol is an open geometric 'C' formed by precise architectural modular brackets enclosing a central verification node point. Clean, hairline precision, civic green and ink, symbolizing an open civic system holding verifiable evidence.
+The Brújula Cívica symbol is an open geometric 'C' formed by precise architectural modular brackets enclosing a central verification node point. Clean, hairline precision, civic green and ink, symbolizing an open civic system holding verifiable evidence.
 
 - **Primary**: Symbol + wordmark together
 - **Secondary**: Symbol only (square, app icon contexts)
@@ -23,9 +23,9 @@ The CivicSys symbol is an open geometric 'C' formed by precise architectural mod
 - **Minimum size**: 16px (symbol only), 24px (with wordmark)
 
 ### Wordmark
-"CivicSys" set in **Public Sans** (600/semibold), tracking slightly negative. "Ultimate Registry" or secondary descriptor uses **JetBrains Mono** (500) uppercase, tight tracking for technical labeling.
+"Brújula Cívica" set in **Public Sans** (600/semibold), tracking slightly negative. "Ultimate Registry" or secondary descriptor uses **JetBrains Mono** (500) uppercase, tight tracking for technical labeling.
 
-- **Primary wordmark**: CivicSys (Public Sans, 600)
+- **Primary wordmark**: Brújula Cívica (Public Sans, 600)
 - **Technical descriptor**: Uppercase, monospace, spaced
 
 ### Favicon
@@ -51,7 +51,7 @@ Core brand colors as specified:
 | **Signal** | `#E8A83E` | Accent, attention, warnings, deliberation states. |
 
 ### Extended Material 3-inspired palette
-For UI components, we extend the core palette to provide full surface hierarchy while staying true to CivicSys' grounded tone:
+For UI components, we extend the core palette to provide full surface hierarchy while staying true to Brújula Cívica' grounded tone:
 
 | Token | Hex | Role |
 |---|---|---|
@@ -167,7 +167,7 @@ Subtly use elevation to create hierarchy without breaking the grounded, editoria
 | `FAILED` / `MISMATCH` | Error (`#BA1A1A`) with cancel/x. | At least one deterministic check demonstrably fails (tampering/corruption). verdict = `mismatch`. |
 | `EN DISPUTA` | Tertiary amber/brown treatment | Factual objection presented; enters public deliberation (transitional state). |
 
-**Rule**: UI badges must only echo the computed verdict from `@civicsys/sdk` verifier. Never invent, never decorate independently.
+**Rule**: UI badges must only echo the computed verdict from `@brugulacivica/sdk` verifier. Never invent, never decorate independently.
 
 ## 8. Graphic language
 

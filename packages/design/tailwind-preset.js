@@ -1,7 +1,7 @@
 import tokens from './tokens.json' assert { type: 'json' };
 
 /**
- * CivicSys design tokens Tailwind preset
+ * Brújula Cívica design tokens Tailwind preset
  * Maps brand tokens to Tailwind theme
  */
 export default {

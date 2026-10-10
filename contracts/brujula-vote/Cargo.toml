@@ -1,0 +1,22 @@
+[package]
+name = "brujula-vote"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Brújula Cívica ballots, nullifiers and tally (RFC BRUJULA-CIVICA-ARCH-001 §3.3)"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+# NOTE: brujula-identity / brujula-proposal are dev-dependencies only.
+# Depending on contract crates in the normal deps would pull their wasm
+# exports (set_admin, admin, __constructor, ...) into this wasm and collide.
+# Cross-contract reads use `#[contractclient]` interface traits instead.
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+brujula-identity = { path = "../brujula-identity" }
+brujula-proposal = { path = "../brujula-proposal" }

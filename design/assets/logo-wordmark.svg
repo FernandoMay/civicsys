@@ -1,4 +1,4 @@
-<svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CivicSys wordmark">
+<svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Brújula Cívica wordmark">
   <!-- Symbol -->
   <g transform="translate(0, 4)">
     <path d="M 8 8 L 6 8 L 6 24 L 8 24" stroke="#176B55" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
@@ -13,5 +13,5 @@
     <path d="M 20 24 L 18 24" stroke="#176B55" stroke-width="1.5" stroke-linecap="round"/>
   </g>
   <!-- Wordmark -->
-  <text x="32" y="32" font-family="'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="600" letter-spacing="-0.02em" fill="#111315">CivicSys</text>
+  <text x="32" y="32" font-family="'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="600" letter-spacing="-0.02em" fill="#111315">Brújula Cívica</text>
 </svg>

@@ -216,6 +216,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "brujula-accountability"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "brujula-identity"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "brujula-proposal"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "brujula-vote"
+version = "0.1.0"
+dependencies = [
+ "brujula-identity",
+ "brujula-proposal",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "bs58"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -285,36 +315,6 @@ dependencies = [
  "num-traits",
  "serde",
  "windows-link",
-]
-
-[[package]]
-name = "civic-accountability"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "civic-identity"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "civic-proposal"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "civic-vote"
-version = "0.1.0"
-dependencies = [
- "civic-identity",
- "civic-proposal",
- "soroban-sdk",
 ]
 
 [[package]]

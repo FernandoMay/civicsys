@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CivicSys — verify a deployment evidence record (RFC §9, §10).
+# Brújula Cívica — verify a deployment evidence record (RFC §9, §10).
 #
 # Fails (exit 1) unless, for every contract:
 #   1. the record exists and has all required fields (no UNKNOWN/null);
@@ -14,7 +14,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 RECORD="${1:-deployments/testnet.json}"
-WASM_DIR="target/wasm32v1-none/release"
+CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+WASM_DIR="$CARGO_TARGET_DIR/wasm32v1-none/release"
 LIVE=0
 [ "${2:-}" = "--live" ] && LIVE=1
 
@@ -27,9 +28,9 @@ jq -e . "$RECORD" >/dev/null || { echo "FAIL: $RECORD is not valid JSON" >&2; ex
 echo "== record: $RECORD"
 jq -r '"network=\(.network) source=\(.source_account) generated=\(.generated_at)"' "$RECORD"
 
-VERSION="$(grep -m1 '^version' contracts/civic-identity/Cargo.toml | cut -d'"' -f2)"
+VERSION="$(grep -m1 '^version' contracts/brujula-identity/Cargo.toml | cut -d'"' -f2)"
 
-for key in civic-identity civic-proposal civic-vote civic-accountability; do
+for key in brujula-identity brujula-proposal brujula-vote brujula-accountability; do
   echo "-- $key"
   c="$(jq -c ".contracts[\"$key\"]" "$RECORD")"
   [ "$c" != "null" ] || { err "$key missing from record"; continue; }

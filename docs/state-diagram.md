@@ -1,10 +1,10 @@
-# CivicSys state diagrams (v0.1)
+# Brújula Cívica state diagrams (v0.1)
 
 Source of truth: contract code in `contracts/*/src/lib.rs`, proven by the named
 tests in `contracts/*/src/test.rs` (28/28 green) and by live testnet evidence
 (`deployments/*.json`).
 
-Honesty rules used throughout (RFC CIVICSYS-ARCH-001 §0/§1):
+Honesty rules used throughout (RFC BRUJULA-CIVICA-ARCH-001 §0/§1):
 
 - On-chain status is **derived on every read**, never stored as mutable truth,
   whenever it is computable (proposal windows).
@@ -16,7 +16,7 @@ Honesty rules used throughout (RFC CIVICSYS-ARCH-001 §0/§1):
 
 ---
 
-## 1. Credential lifecycle — `civic-identity` (RFC §3.1)
+## 1. Credential lifecycle — `brujula-identity` (RFC §3.1)
 
 Stored record: `{subject, commitment, credential_type, status, eligible,
 issued_at, updated_at}`. Only a 32-byte commitment — never raw identity data.
@@ -47,7 +47,7 @@ as `NotEligible` instead of crashing the tally.
 
 ---
 
-## 2. Proposal lifecycle — `civic-proposal` (RFC §3.2)
+## 2. Proposal lifecycle — `brujula-proposal` (RFC §3.2)
 
 Status is **not stored**; `compute_status` derives it on every read from
 `cancelled` + ledger time:
@@ -79,7 +79,7 @@ stateDiagram-v2
 
 ---
 
-## 3. Ballot acceptance gates — `civic-vote` (RFC §3.3)
+## 3. Ballot acceptance gates — `brujula-vote` (RFC §3.3)
 
 ```mermaid
 flowchart TD
@@ -129,7 +129,7 @@ stateDiagram-v2
 ```
 
 - The contract writes only `public_v1` and `commitment_v1`
-  (see the honesty note at the top of `civic-vote/src/lib.rs`) — **no code path
+  (see the honesty note at the top of `brujula-vote/src/lib.rs`) — **no code path
   can produce a `zk_*` tally in v0.1**.
 - No tally ⇒ `get_tally` returns `null` ⇒ off-chain verdict `unknown`, never a
   fabricated zero tally.
@@ -139,7 +139,7 @@ stateDiagram-v2
 
 ---
 
-## 5. Off-chain verdict — `@civicsys/sdk` verifier (6 checks)
+## 5. Off-chain verdict — `@brugulacivica/sdk` verifier (6 checks)
 
 Reads the tally from chain, then computes **all** of: `mode_recognized`,
 `counts_well_formed`, `total_equals_sum_counts`, `total_equals_mode_split`,
@@ -159,7 +159,7 @@ and by the smoke test (`verdict: verified`, 6 checks, proposal 2).
 
 ---
 
-## 6. Evidence chain — `civic-accountability` (RFC §3.4)
+## 6. Evidence chain — `brujula-accountability` (RFC §3.4)
 
 ```mermaid
 flowchart LR

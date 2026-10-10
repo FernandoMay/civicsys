@@ -1,7 +1,7 @@
 {
-  "name": "@civicsys/sdk",
+  "name": "@brugulacivica/sdk",
   "version": "0.1.0",
-  "description": "CivicSys TypeScript SDK — fail-closed reads and verification for the CivicSys Soroban contracts (RFC CIVICSYS-ARCH-001)",
+  "description": "Brújula Cívica TypeScript SDK — fail-closed reads and verification for the Brújula Cívica Soroban contracts (RFC BRUJULA-CIVICA-ARCH-001)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run test/verifier.test.ts test/config.test.ts",
+    "test": "vitest run test/verifier.test.ts test/config.test.ts test/reads.test.ts",
     "test:live": "vitest run test/live.test.ts",
     "test:funding": "vitest run test/funding.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
