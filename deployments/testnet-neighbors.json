@@ -1,5 +1,5 @@
 {
-  "schema": "civicsys/testnet-neighbors@1",
+  "schema": "brujula-civica/testnet-neighbors@1",
   "network": "testnet",
   "horizon": "https://horizon-testnet.stellar.org",
   "generated_at": "2026-10-08T22:47:22Z",
@@ -7,28 +7,28 @@
   "note": "public addresses only — seed phrases live in the local stellar keys keystore and are never written here",
   "accounts": [
     {
-      "name": "civicsys-neighbor-1",
+      "name": "brujula-neighbor-1",
       "address": "GCM55UEHGW4RL2GK3PPUXX2UHFJOETDFVSIC4M6GQABSLX5RMHBVJTFI",
       "balance_xlm": 10000,
       "funded_at": "2026-10-08T22:47:07Z",
       "fund_source": "friendbot"
     },
     {
-      "name": "civicsys-neighbor-2",
+      "name": "brujula-neighbor-2",
       "address": "GCJTCDWPOENTNN2QXMCLX3EDQQMJHAA5X5W2GW5ODWR7DJDLGXI6CLPF",
       "balance_xlm": 10000,
       "funded_at": "2026-10-08T22:47:12Z",
       "fund_source": "friendbot"
     },
     {
-      "name": "civicsys-neighbor-3",
+      "name": "brujula-neighbor-3",
       "address": "GDIYNQFGFGTFYRAJV4IY6B4BSVGTFCXZQI7U5HR5KGHXGIRQI6O7PP7O",
       "balance_xlm": 10000,
       "funded_at": "2026-10-08T22:47:18Z",
       "fund_source": "friendbot"
     },
     {
-      "name": "civicsys-neighbor-4",
+      "name": "brujula-neighbor-4",
       "address": "GCR3LW346ULOQNUJR7SXOIT2UYCQLTSOWAATLYFFEGUT3ONNFTT5TG67",
       "balance_xlm": 10000,
       "funded_at": "2026-10-08T22:47:22Z",

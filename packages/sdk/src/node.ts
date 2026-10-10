@@ -1,5 +1,5 @@
 /**
- * Node-only helpers (uses `node:fs`). Import from `@civicsys/sdk/node`.
+ * Node-only helpers (uses `node:fs`). Import from `@brugulacivica/sdk/node`.
  * Kept separate so the browser bundle never pulls in fs.
  */
 import { readFileSync } from "node:fs";

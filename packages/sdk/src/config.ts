@@ -6,7 +6,7 @@ export const DEFAULT_TESTNET_RPC = "https://soroban-testnet.stellar.org";
 
 export function rpcUrlFromEnv(fallback: string = DEFAULT_TESTNET_RPC): string {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-    ?.CIVICSYS_RPC_URL || fallback;
+    ?.BRUJULA_CIVICA_RPC_URL || fallback;
 }
 
 /**

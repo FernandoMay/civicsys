@@ -1,49 +1,83 @@
-import { ProposalView, PROPOSAL_STATUS_LABEL, type Read } from "@civicsys/sdk";
+/**
+ * Proposals — read straight from `brujula-proposal`.
+ *
+ * Two honesty bugs in the previous version are fixed here:
+ *   1. an unreadable status used to render as "Programada" (a fabricated
+ *      default). It now renders DESCONOCIDO;
+ *   2. ids were relabelled `CIV-2025-<id + 1>`, an invented scheme that was
+ *      also off by one. The on-chain id is now shown verbatim.
+ */
+
+import { useMemo, useState } from "react";
+
+import { PROPOSAL_STATUS, PROPOSAL_STATUS_LABEL, type Read } from "@brugulacivica/sdk";
 import type { ProposalRow } from "../lib/chain.js";
+import { dateOrUnknown, reasonOf, shortAddress, shortHash, UNKNOWN } from "../lib/format.js";
 
-interface ProposalCardProps {
-  row: ProposalRow;
-}
+type Filter = "todas" | "abiertas" | "cerradas";
 
-const STATUS_BADGE: Record<number, { label: string; variant: string }> = {
-  0: { label: "Programada", variant: "outline" },
-  1: { label: "En Votación", variant: "primary" },
-  2: { label: "Cerrada", variant: "outline" },
-  3: { label: "Cancelada", variant: "warn" },
-};
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "todas", label: "TODAS" },
+  { value: "abiertas", label: "ABIERTAS" },
+  { value: "cerradas", label: "CERRADAS" },
+];
 
-export default function Proposals({ rows, nextId, loading }: {
+export default function Proposals({
+  rows,
+  nextId,
+  loading,
+  onVote,
+}: {
   rows: ProposalRow[];
-  nextId: { status: "ok" | "unknown"; value?: bigint; reason?: string };
+  nextId: Read<bigint>;
   loading: boolean;
+  onVote: (proposalId: bigint) => void;
 }) {
+  const [filter, setFilter] = useState<Filter>("todas");
+
+  const visible = useMemo(() => {
+    if (filter === "todas") return rows;
+    const wantOpen = filter === "abiertas";
+    return rows.filter((r) =>
+      r.status.status === "ok" ? (r.status.value === PROPOSAL_STATUS.OPEN) === wantOpen : true,
+    );
+  }, [rows, filter]);
+
   return (
     <section className="proposals-section" id="proposals">
       <div className="proposals-head">
         <div className="proposals-head-left">
-          <span className="section-eyebrow">Consultas Comunitarias Vigentes</span>
-          <h2 className="section-title">Iniciativas Públicas Prioritarias</h2>
+          <span className="section-eyebrow">Consultas Ciudadanas</span>
+          <h2 className="section-title">Iniciativas Registradas</h2>
           <p className="section-lead">
-            Proyectos con financiamiento municipal asignado. Cada voto se registra
-            directamente en la cadena Stellar con evidencia documental auditada por
-            Hermes.
+            Cada iniciativa existe en la cadena con su ventana de votación y sus
+            hashes de contenido. El texto completo vive fuera de la cadena, dirigido
+            por su CID.
           </p>
         </div>
-        <div className="proposals-filter">
+        <div className="proposals-filter" role="group" aria-label="Filtrar propuestas">
           <span className="filter-label">FILTRO:</span>
-          <button className="filter-btn filter-active">TODAS</button>
-          <button className="filter-btn">MOVILIDAD</button>
-          <button className="filter-btn">ENERGÍA</button>
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={`filter-btn ${filter === f.value ? "filter-active" : ""}`}
+              aria-pressed={filter === f.value}
+              onClick={() => setFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="proposals-head" style={{ marginTop: "16px" }}>
         <span className="muted">
           {loading
-            ? "cargando iniciativas desde Stellar…"
+            ? "leyendo propuestas desde Stellar…"
             : nextId.status === "ok"
-              ? `next id ${nextId.value?.toString() ?? "?"}`
-              : `cuenta de iniciativas desconocida: ${nextId.reason ?? "?"}`}
+              ? `${nextId.value > 0n ? (nextId.value - 1n).toString() : "0"} propuestas en cadena`
+              : `total de propuestas desconocido: ${nextId.reason}`}
         </span>
       </div>
 
@@ -52,19 +86,21 @@ export default function Proposals({ rows, nextId, loading }: {
           <span className="chip chip-unknown">CARGANDO</span>
           <span className="reason">leyendo propuestas desde Stellar testnet…</span>
         </div>
-      ) : rows.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="unknown">
           <span className="chip chip-unknown">SIN INICIATIVAS</span>
           <span className="reason">
             {nextId.status === "unknown"
-              ? `no se pudo leer la cuenta de iniciativas: ${nextId.reason}`
-              : "no hay propuestas registradas en la cadena aún"}
+              ? `no se pudo leer el total de propuestas: ${nextId.reason}`
+              : rows.length === 0
+                ? "no hay propuestas registradas en la cadena aún"
+                : "ninguna propuesta coincide con este filtro"}
           </span>
         </div>
       ) : (
         <div className="proposals-grid">
-          {rows.map((row) => (
-            <ProposalCard key={row.id.toString()} row={row} />
+          {visible.map((row) => (
+            <ProposalCard key={row.id.toString()} row={row} onVote={onVote} />
           ))}
         </div>
       )}
@@ -72,30 +108,46 @@ export default function Proposals({ rows, nextId, loading }: {
   );
 }
 
-function getStatusBadge(status: Read<number>): { label: string; variant: string } {
-  if (status.status === "ok" && typeof status.value === "number") {
-    const candidate = STATUS_BADGE[status.value];
-    return (candidate ?? STATUS_BADGE[0]) as { label: string; variant: string };
-  }
-  return STATUS_BADGE[0] as { label: string; variant: string };
+type Badge = { label: string; variant: string };
+
+/** Unknown status is its own badge — never silently coerced to a known state. */
+function statusBadge(status: Read<number>): Badge {
+  if (status.status !== "ok") return { label: UNKNOWN, variant: "unknown" };
+  const label = PROPOSAL_STATUS_LABEL[status.value] ?? UNKNOWN;
+  const variant =
+    status.value === PROPOSAL_STATUS.OPEN
+      ? "primary"
+      : status.value === PROPOSAL_STATUS.CANCELLED
+        ? "warn"
+        : "outline";
+  return { label, variant };
 }
 
-function ProposalCard({ row }: ProposalCardProps) {
+function ProposalCard({
+  row,
+  onVote,
+}: {
+  row: ProposalRow;
+  onVote: (proposalId: bigint) => void;
+}) {
   const { proposal, status } = row;
-
-  const statusBadge = getStatusBadge(status);
-  const idLabel = `CIV-2025-${String(Number(row.id) + 1).padStart(2, "0")}`;
+  const badge = statusBadge(status);
+  const idLabel = `#${row.id.toString()}`;
+  const isOpen = status.status === "ok" && status.value === PROPOSAL_STATUS.OPEN;
 
   if (proposal.status === "unknown") {
     return (
       <article className="proposal-card">
         <div className="proposal-media">
-          <span className="proposal-id-badge">ID: {idLabel}</span>
+          <span className={`proposal-status-badge badge-${badge.variant}`}>
+            {badge.label}
+          </span>
+          <span className="proposal-id-badge">ID {idLabel}</span>
         </div>
         <div className="proposal-body">
           <div className="unknown">
-            <span className="chip chip-unknown">PROXIMA INICIATIVA</span>
-            <span className="reason">no se pudo leer la propuesta {idLabel} desde la cadena: {proposal.reason}</span>
+            <span className="chip chip-unknown">SIN LECTURA</span>
+            <span className="reason">{reasonOf(proposal)}</span>
           </div>
         </div>
       </article>
@@ -107,12 +159,17 @@ function ProposalCard({ row }: ProposalCardProps) {
     return (
       <article className="proposal-card">
         <div className="proposal-media">
-          <span className="proposal-id-badge">ID: {idLabel}</span>
+          <span className={`proposal-status-badge badge-${badge.variant}`}>
+            {badge.label}
+          </span>
+          <span className="proposal-id-badge">ID {idLabel}</span>
         </div>
         <div className="proposal-body">
           <div className="unknown">
-            <span className="chip chip-unknown">SIN REGISTRO</span>
-            <span className="reason">no existe propuesta {idLabel} en la cadena</span>
+            <span className="chip chip-unknown">NO EXISTE</span>
+            <span className="reason">
+              la cadena no registra ninguna propuesta con id {idLabel}
+            </span>
           </div>
         </div>
       </article>
@@ -122,50 +179,65 @@ function ProposalCard({ row }: ProposalCardProps) {
   return (
     <article className="proposal-card">
       <div className="proposal-media">
-        <span className={`proposal-status-badge badge-${statusBadge.variant}`}>
-          {statusBadge.label.toUpperCase()}
+        <span className={`proposal-status-badge badge-${badge.variant}`}>
+          {badge.label.toUpperCase()}
         </span>
-        <span className="proposal-id-badge">ID: {idLabel}</span>
+        <span className="proposal-id-badge">ID {idLabel}</span>
       </div>
 
       <div className="proposal-body">
         <div className="proposal-head">
           <div className="proposal-meta-top">
-            <span className="proposal-district">{p.proposer.slice(0, 10)}…{p.proposer.slice(-4)}</span>
-            <span className="proposal-budget-label">PRESUPUESTO ASIGNADO</span>
+            <span className="proposal-district">{shortAddress(p.proposer)}</span>
+            <span className="proposal-budget-label">PROPONENTE</span>
           </div>
-          <h3 className="proposal-title">Hash: {p.title_hash.slice(0, 10)}…{p.title_hash.slice(-6)}</h3>
+          <h3 className="proposal-title" title={p.title_hash}>
+            Título (hash): {shortHash(p.title_hash)}
+          </h3>
           <p className="proposal-desc">
-            Contenido fuera de cadena — CID: {p.content_cid.slice(0, 20)}…
+            El texto de la iniciativa no vive en la cadena. Se direcciona por su
+            CID y se ancla por hash.
           </p>
         </div>
 
         <div className="proposal-budget-row">
-          <span className="budget-key">CONTENIDO:</span>
-          <span className="budget-value">{p.content_cid}</span>
+          <span className="budget-key">CID DE CONTENIDO:</span>
+          <span className="budget-value" title={p.content_cid}>
+            {p.content_cid || UNKNOWN}
+          </span>
         </div>
         <div className="proposal-budget-row">
-          <span className="budget-key">EVIDENCIA ROOT:</span>
-          <span className="budget-value budget-medium">{p.evidence_root.slice(0, 10)}…{p.evidence_root.slice(-6)}</span>
+          <span className="budget-key">EVIDENCIA (ROOT):</span>
+          <span className="budget-value budget-medium" title={p.evidence_root}>
+            {shortHash(p.evidence_root)}
+          </span>
+        </div>
+        <div className="proposal-budget-row">
+          <span className="budget-key">EVIDENCIAS ADJUNTAS:</span>
+          <span className="budget-value">{p.evidence.length.toString()}</span>
         </div>
 
         <div className="proposal-participation">
           <div className="participation-head">
             <span className="participation-label">Ventana de votación:</span>
             <span className="participation-value">
-              {new Date(Number(p.opens_at) * 1000).toLocaleDateString()} →
-              {new Date(Number(p.closes_at) * 1000).toLocaleDateString()}
+              {dateOrUnknown(p.opens_at)} → {dateOrUnknown(p.closes_at)}
             </span>
           </div>
         </div>
       </div>
 
       <div className="proposal-action">
-        <button className="btn btn-primary proposal-cta" onClick={() => alert(`Boleta para propuesta ${idLabel}: hash de título ${p.title_hash.slice(0, 10)}…`)}>
+        <button
+          type="button"
+          className="btn btn-primary proposal-cta"
+          disabled={!isOpen}
+          onClick={() => onVote(row.id)}
+        >
           <svg className="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
           </svg>
-          Apoyar e Inspeccionar
+          {isOpen ? "Votar en esta iniciativa" : "Votación no disponible"}
         </button>
       </div>
     </article>

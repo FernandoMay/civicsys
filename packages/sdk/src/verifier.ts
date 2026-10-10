@@ -1,6 +1,6 @@
 /**
  * Fail-closed verification of an on-chain tally.
- * Source of truth: RFC CIVICSYS-ARCH-001 §3.3 / §6.
+ * Source of truth: RFC BRUJULA-CIVICA-ARCH-001 §3.3 / §6.
  *
  * Pure functions — no I/O — so every rule is unit-testable and deterministic.
  */
@@ -86,7 +86,7 @@ export function verifyTally(
     checks.push({
       id: "mode_recognized",
       state: false,
-      detail: `mode=${mode} is not a known CivicSys verification mode`,
+      detail: `mode=${mode} is not a known Brújula Cívica verification mode`,
     });
   }
 

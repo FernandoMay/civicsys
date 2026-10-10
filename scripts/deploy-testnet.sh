@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CivicSys — evidence-first testnet deployment.
-# Source of truth: docs/rfc/CIVICSYS-ARCH-001.md §9
+# Brújula Cívica — evidence-first testnet deployment.
+# Source of truth: docs/rfc/BRUJULA-CIVICA-ARCH-001.md §9
 #
 # For every contract this records, in deployments/testnet.json:
 #   network, network_passphrase, contract_id, deploy_tx (tx hash),
@@ -17,10 +17,13 @@ cd "$ROOT"
 
 NETWORK="testnet"
 PASSPHRASE="Test SDF Network ; September 2015"
-SOURCE="${CIVICSYS_DEPLOYER:-civicsys-deployer}"
+SOURCE="${BRUJULA_CIVICA_DEPLOYER:-brujula-deployer}"
 OUT="deployments/testnet.json"
 LOG_DIR="deployments/logs"
-WASM_DIR="target/wasm32v1-none/release"
+# Honour CARGO_TARGET_DIR so the build artifacts can live outside the repo (a
+# wasm release build is large; /tmp is often a small tmpfs).
+CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+WASM_DIR="$CARGO_TARGET_DIR/wasm32v1-none/release"
 mkdir -p deployments "$LOG_DIR"
 
 step() { printf '\n\033[1m== %s ==\033[0m\n' "$*"; }
@@ -40,8 +43,8 @@ echo "admin/source: $ADMIN"
 
 step "2/6 build"
 stellar contract build
-if [ ! -f "$WASM_DIR/civic_identity.wasm" ]; then
-  echo "FATAL: missing $WASM_DIR/civic_identity.wasm" >&2; exit 1
+if [ ! -f "$WASM_DIR/brujula_identity.wasm" ]; then
+  echo "FATAL: missing $WASM_DIR/brujula_identity.wasm" >&2; exit 1
 fi
 
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
@@ -97,15 +100,15 @@ deploy_one() {
 }
 
 step "3/6 deploy contracts (constructor included in deploy tx)"
-deploy_one civic_identity       --admin "$ADMIN"
-deploy_one civic_proposal       --admin "$ADMIN"
-deploy_one civic_accountability --admin "$ADMIN"
-IDENTITY_ID="$(sed -n 1p "$LOG_DIR/civic_identity-evidence.txt")"
-PROPOSAL_ID="$(sed -n 1p "$LOG_DIR/civic_proposal-evidence.txt")"
-deploy_one civic_vote --admin "$ADMIN" --identity "$IDENTITY_ID" --proposal "$PROPOSAL_ID"
+deploy_one brujula_identity       --admin "$ADMIN"
+deploy_one brujula_proposal       --admin "$ADMIN"
+deploy_one brujula_accountability --admin "$ADMIN"
+IDENTITY_ID="$(sed -n 1p "$LOG_DIR/brujula_identity-evidence.txt")"
+PROPOSAL_ID="$(sed -n 1p "$LOG_DIR/brujula_proposal-evidence.txt")"
+deploy_one brujula_vote --admin "$ADMIN" --identity "$IDENTITY_ID" --proposal "$PROPOSAL_ID"
 
 step "4/6 write evidence record"
-VERSION="$(grep -m1 '^version' contracts/civic-identity/Cargo.toml | cut -d'"' -f2)"
+VERSION="$(grep -m1 '^version' contracts/brujula-identity/Cargo.toml | cut -d'"' -f2)"
 field() { sed -n "${2}p" "$LOG_DIR/$1-evidence.txt"; }
 
 jq -n \
@@ -116,34 +119,34 @@ jq -n \
   --arg stellar "$STELLAR_VER" \
   --arg rustc "$RUSTC_VER" \
   --arg version "$VERSION" \
-  --arg id_id "$(field civic_identity 1)" \
-  --arg id_tx "$(field civic_identity 2)" \
-  --arg id_led "$(field civic_identity 3)" \
-  --arg id_sha "$(sha "$WASM_DIR/civic_identity.wasm")" \
-  --arg pr_id "$(field civic_proposal 1)" \
-  --arg pr_tx "$(field civic_proposal 2)" \
-  --arg pr_led "$(field civic_proposal 3)" \
-  --arg pr_sha "$(sha "$WASM_DIR/civic_proposal.wasm")" \
-  --arg vo_id "$(field civic_vote 1)" \
-  --arg vo_tx "$(field civic_vote 2)" \
-  --arg vo_led "$(field civic_vote 3)" \
-  --arg vo_sha "$(sha "$WASM_DIR/civic_vote.wasm")" \
-  --arg ac_id "$(field civic_accountability 1)" \
-  --arg ac_tx "$(field civic_accountability 2)" \
-  --arg ac_led "$(field civic_accountability 3)" \
-  --arg ac_sha "$(sha "$WASM_DIR/civic_accountability.wasm")" \
+  --arg id_id "$(field brujula_identity 1)" \
+  --arg id_tx "$(field brujula_identity 2)" \
+  --arg id_led "$(field brujula_identity 3)" \
+  --arg id_sha "$(sha "$WASM_DIR/brujula_identity.wasm")" \
+  --arg pr_id "$(field brujula_proposal 1)" \
+  --arg pr_tx "$(field brujula_proposal 2)" \
+  --arg pr_led "$(field brujula_proposal 3)" \
+  --arg pr_sha "$(sha "$WASM_DIR/brujula_proposal.wasm")" \
+  --arg vo_id "$(field brujula_vote 1)" \
+  --arg vo_tx "$(field brujula_vote 2)" \
+  --arg vo_led "$(field brujula_vote 3)" \
+  --arg vo_sha "$(sha "$WASM_DIR/brujula_vote.wasm")" \
+  --arg ac_id "$(field brujula_accountability 1)" \
+  --arg ac_tx "$(field brujula_accountability 2)" \
+  --arg ac_led "$(field brujula_accountability 3)" \
+  --arg ac_sha "$(sha "$WASM_DIR/brujula_accountability.wasm")" \
   '{
-    schema: "civicsys/deployments@1",
+    schema: "brujula-civica/deployments@1",
     network: $network,
     network_passphrase: $passphrase,
     source_account: $source,
     generated_at: $generated,
     toolchain: { stellar: $stellar, rustc: $rustc },
     contracts: {
-      "civic-identity":      { version: $version, contract_id: $id_id,  deploy_tx: $id_tx,  deploy_ledger: (if $id_led == "" then null else $id_led end), wasm_sha256: $id_sha },
-      "civic-proposal":      { version: $version, contract_id: $pr_id,  deploy_tx: $pr_tx,  deploy_ledger: (if $pr_led == "" then null else $pr_led end), wasm_sha256: $pr_sha },
-      "civic-vote":          { version: $version, contract_id: $vo_id,  deploy_tx: $vo_tx,  deploy_ledger: (if $vo_led == "" then null else $vo_led end), wasm_sha256: $vo_sha },
-      "civic-accountability":{ version: $version, contract_id: $ac_id,  deploy_tx: $ac_tx,  deploy_ledger: (if $ac_led == "" then null else $ac_led end), wasm_sha256: $ac_sha }
+      "brujula-identity":      { version: $version, contract_id: $id_id,  deploy_tx: $id_tx,  deploy_ledger: (if $id_led == "" then null else $id_led end), wasm_sha256: $id_sha },
+      "brujula-proposal":      { version: $version, contract_id: $pr_id,  deploy_tx: $pr_tx,  deploy_ledger: (if $pr_led == "" then null else $pr_led end), wasm_sha256: $pr_sha },
+      "brujula-vote":          { version: $version, contract_id: $vo_id,  deploy_tx: $vo_tx,  deploy_ledger: (if $vo_led == "" then null else $vo_led end), wasm_sha256: $vo_sha },
+      "brujula-accountability":{ version: $version, contract_id: $ac_id,  deploy_tx: $ac_tx,  deploy_ledger: (if $ac_led == "" then null else $ac_led end), wasm_sha256: $ac_sha }
     }
   }' > "$OUT"
 

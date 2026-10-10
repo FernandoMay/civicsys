@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CivicSys — read one subject's credential from the identity contract and
+ * Brújula Cívica — read one subject's credential from the identity contract and
  * print JSON for scripts/smoke-test.sh to assert on (fail-closed: an unreadable
  * credential is reported as not-issued, never assumed).
  *
@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { loadDeployment } from "../packages/sdk/dist/node.js";
-import { CivicReader } from "../packages/sdk/dist/index.js";
+import { BrujulaReader } from "../packages/sdk/dist/index.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const subject = process.argv[2];
@@ -21,12 +21,12 @@ if (!/^G[A-Z2-7]{55}$/.test(subject ?? "")) {
   process.exit(2);
 }
 if (!existsSync(join(root, "packages", "sdk", "dist", "index.js"))) {
-  console.error("SDK not built — run: pnpm --filter @civicsys/sdk build");
+  console.error("SDK not built — run: pnpm --filter @brugulacivica/sdk build");
   process.exit(2);
 }
 
 const record = loadDeployment(join(root, "deployments", "testnet.json"));
-const reader = new CivicReader(record);
+const reader = new BrujulaReader(record);
 const r = await reader.getCredential(subject);
 
 const out = {

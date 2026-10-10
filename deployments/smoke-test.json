@@ -1,23 +1,23 @@
 {
-  "schema": "civicsys/smoke-test@1",
-  "generated_at": "2026-10-09T15:40:08Z",
-  "admin": "GD6GHMPZRPSBHJGBZW56E7TEL2N4K5BEHV5TFHVUXDYEVFCBVXEWME6U",
-  "credential_commitment": "a391ad4f162cf2bb7e5860d529e4790605cb1a25a991995ac5982196068b3756",
-  "issue_tx": null,
+  "schema": "brujula-civica/smoke-test@1",
+  "generated_at": "2026-10-10T18:52:47Z",
+  "admin": "GBL4PUJ4UYHK72KZWPB2EKYYVR4WVKAGFXFNKBPXT57MI3NUZIBGURUT",
+  "credential_commitment": "bad1553b09d7ca99425d3f42da3a6b87cbd732b92390abd590bc4c627c913ce2",
+  "issue_tx": "253523e13fe89fcc57054588f627d67838858ec31a3e1b6a21bc018458104d32",
   "proposal": {
-    "id": 4,
-    "create_tx": "5604bbfcab568363e92f70c17fa34a12597e61592357228f5f64d18a76ed6452",
+    "id": 1,
+    "create_tx": "7432608767b06a06a8b3948d5467c6ee889f5fb4bbbbe42e698133a544d12edd",
     "status_on_chain": "1"
   },
   "vote": {
-    "tx": "b544c363876f23ec246351c7ca08522d9cb21dcde259d61ab574e6f2c8ce89c6",
+    "tx": "1af3c997f2b34bc909f7776cb6432e593e7eb7de46e7da6c3e6cbfd7ba6b8404",
     "vote_count": 1,
     "verdict": "verified"
   },
   "report": {
-    "id": 4,
-    "anchor_tx": "5f6c77a67dd6e05404c13b8264a61d40a80a49e28ae236ca70ef8ea6f06090be",
-    "report_hash": "89d6b25e09901aeff338463ed87a450341bd88f2c9227e7830fb9fdea6a2b9e2",
-    "evidence_hash": "60e2d887d2c66801b52645232781b0c57552c7aa119e90b770e57850c0cfc5e6"
+    "id": 1,
+    "anchor_tx": "0363a7de37b7ce3cf8d253b4239556df886b573d24a4005c7665b9001657a81c",
+    "report_hash": "a12e81160d613731e123890bbca523c6109b9554d0301da211ad97f90492b314",
+    "evidence_hash": "02193b75901c121673b6a82f31be260fdca8da2eacb9d593afb300f4d4b734d5"
   }
 }

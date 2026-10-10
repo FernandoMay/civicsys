@@ -1,4 +1,4 @@
-const preset = require('@civicsys/design/tailwind-preset').default;
+const preset = require('@brugulacivica/design/tailwind-preset').default;
 
 module.exports = {
   presets: [preset],

@@ -1,0 +1,16 @@
+[package]
+name = "brujula-accountability"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Brújula Cívica append-only report anchoring (RFC BRUJULA-CIVICA-ARCH-001 §3.4)"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

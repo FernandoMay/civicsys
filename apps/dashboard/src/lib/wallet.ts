@@ -1,192 +1,166 @@
-import { createElement, useEffect, useMemo, useState } from "react";
+/**
+ * Wallet boundary for Brújula Cívica.
+ *
+ * Design rule (RFC BRUJULA-CIVICA-ARCH-001 §0): the dashboard never invents an
+ * identity. A voter's address comes from a real wallet extension or is
+ * `null` — it is never a placeholder, a demo string, or a hardcoded key.
+ *
+ * The concrete adapter (Freighter, first-party `@stellar/freighter-api`) is
+ * injected through React context so:
+ *   - views depend on `useWallet()`, not on a vendor SDK;
+ *   - tests can supply a deterministic fake adapter without a browser extension.
+ */
+
 import {
-  NetworkType,
-  WalletProvider as KitProvider,
-  useWallet as useKit,
-  type WalletAccount,
-  type SignTransaction as KitSignTransaction,
-} from "stellar-wallet-kit";
-import type { SignTransaction as StellarSignTransaction } from "@stellar/stellar-sdk/contract";
-import { Client, AssembledTransaction, Keypair } from "@stellar/stellar-sdk/contract";
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
-export { Client, AssembledTransaction, Keypair };
+import type { SignTransaction } from "@stellar/stellar-sdk/contract";
 
-export type { SignTransaction as StellarSignTransaction } from "@stellar/stellar-sdk/contract";
+export type { SignTransaction };
 
-export type { SignTransaction as KitSignTransaction } from "stellar-wallet-kit";
+/** A G… Stellar account address, or `null` when no wallet is connected. */
+export type WalletAddress = string | null;
 
-export type { WalletAccount } from "stellar-wallet-kit";
-
-export type WalletAddress = string;
-
-// ---------------------------------------------------------------------------
-// Couche de adaptación local.
-//
-// stellar-wallet-kit ya expone WalletProvider + useKit().
-// Este archivo NO crea su propio contexto de nuevo; delega todo a la capa
-// del kit y expone solo la forma que el dashboard/modal esperan:
-//   - connected: boolean
-//   - address: WalletAddress | null
-//   - providerName: string | null
-//   - connect(providerName) / disconnect() / retry()
-// ---------------------------------------------------------------------------
-
-export type WalletState = {
-  connected: boolean;
-  address: WalletAddress | null;
-  providerName: string | null;
-};
+export interface WalletAdapter {
+  /** Human-readable adapter name, shown in the UI and in errors. */
+  readonly name: string;
+  /** `false` when the extension is not installed / not detected. */
+  isAvailable(): Promise<boolean>;
+  /** Requests access. Resolves to the connected public key (G…). */
+  connect(): Promise<string>;
+  /** Returns the already-authorised public key, or `null` if not authorised. */
+  restore(): Promise<string | null>;
+  /** Clears the authorisation held by the adapter. */
+  disconnect(): Promise<void>;
+  /** SEP-43 signing callback expected by `@stellar/stellar-sdk`'s `Client`. */
+  signTransaction: SignTransaction;
+}
 
 export interface WalletContextValue {
-  state: WalletState;
-  connect: (providerName: string) => Promise<WalletAddress | null>;
-  disconnect: () => Promise<void>;
-  retry: () => Promise<void>;
+  /** `null` until `connect()` resolves. Drives every "who am I" label. */
+  address: WalletAddress;
+  /** Adapter in use. Always present: the provider requires one. */
+  adapter: WalletAdapter;
+  /** `false` when no adapter is available in this browser at all. */
+  available: boolean | null;
+  /** Last connection error, or `null`. Never swallowed — silent failures are claims. */
+  error: string | null;
+  connecting: boolean;
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
 }
 
-const DEFAULT_WALLET_STATE: WalletState = {
-  connected: false,
-  address: null,
-  providerName: null,
-};
+const WalletContext = createContext<WalletContextValue | null>(null);
 
-const UNKNOWN_ADDRESS = "UNKNOWN";
-const UNKNOWN_PROVIDER = "freighter";
-const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
-
-const TESTNET: NetworkType = NetworkType.TESTNET;
-
-function mapAccount(account: WalletAccount | null): WalletState {
-  if (!account) {
-    return DEFAULT_WALLET_STATE;
+/** Thrown to surface a connection failure instead of silently doing nothing. */
+export class WalletError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WalletError";
   }
-  const addr =
-    typeof account.address === "string" && account.address.trim().length > 0
-      ? account.address.trim()
-      : UNKNOWN_ADDRESS;
-  return {
-    connected: true,
-    address: addr,
-    providerName: UNKNOWN_PROVIDER,
-  };
 }
 
-export function createWalletState(
-  initial: WalletState = DEFAULT_WALLET_STATE,
-): WalletState {
-  return initial;
-}
+export function WalletProvider({
+  adapter,
+  children,
+}: {
+  adapter: WalletAdapter;
+  children: ReactNode;
+}) {
+  const [address, setAddress] = useState<WalletAddress>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export const WalletContext = {
-  defaultState: DEFAULT_WALLET_STATE,
-  unknownAddress: UNKNOWN_ADDRESS,
-  unknownProvider: UNKNOWN_PROVIDER,
-};
-
-export function useWalletState(): WalletContextValue {
-  const kit = useKit();
-  const [mounted, setMounted] = useState(false);
-
+  // Probe availability and try a silent restore on mount. Both outcomes are
+  // reported honestly: `available: false` means "no extension", not "unknown".
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const ok = await adapter.isAvailable();
+        if (cancelled) return;
+        setAvailable(ok);
+        if (!ok) return;
+        const existing = await adapter.restore();
+        if (!cancelled) setAddress(existing);
+      } catch (e) {
+        if (!cancelled) {
+          setAvailable(false);
+          setError(describe(e));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter]);
 
-  const state = useMemo(() => {
-    if (!mounted || !kit.isConnected) return DEFAULT_WALLET_STATE;
-    return mapAccount(kit.account);
-  }, [mounted, kit.isConnected, kit.account]);
-
-  const connect = async (providerName: string): Promise<WalletAddress | null> => {
-    if (!mounted) {
-      return null;
+  const connect = useCallback(async () => {
+    setConnecting(true);
+    setError(null);
+    try {
+      const addr = await adapter.connect();
+      setAddress(addr);
+    } catch (e) {
+      // Rejected by the user, or the extension vanished. Keep `address` null
+      // so no view can render a stale or fabricated identity.
+      setAddress(null);
+      setError(describe(e));
+      throw e;
+    } finally {
+      setConnecting(false);
     }
-    if (providerName !== UNKNOWN_PROVIDER) {
-      return null;
+  }, [adapter]);
+
+  const disconnect = useCallback(async () => {
+    setError(null);
+    try {
+      await adapter.disconnect();
+    } catch (e) {
+      setError(describe(e));
+    } finally {
+      setAddress(null);
     }
-    await kit.connect(UNKNOWN_PROVIDER as any);
-    const s = mapAccount(kit.account);
-    return s.address;
-  };
+  }, [adapter]);
 
-  const disconnect = async (): Promise<void> => {
-    if (!mounted) {
-      return;
-    }
-    await kit.disconnect();
-  };
-
-  const retry = async (): Promise<void> => {
-    if (!mounted || !state.providerName) {
-      return;
-    }
-    await connect(state.providerName);
-  };
-
-  return {
-    state,
-    connect,
-    disconnect,
-    retry,
-  };
-}
-
-export function WalletProvider({ children }: { children: React.ReactNode }) {
-  return createElement(
-    KitProvider,
-    { config: { network: TESTNET, autoConnect: false } },
-    children,
+  const value = useMemo<WalletContextValue>(
+    () => ({ address, adapter, available, error, connecting, connect, disconnect }),
+    [address, adapter, available, error, connecting, connect, disconnect],
   );
+
+  return createElement(WalletContext.Provider, { value }, children);
 }
 
-export function WalletBoundary({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
-  return createElement(WalletProvider, null, children);
+export function useWallet(): WalletContextValue {
+  const ctx = useContext(WalletContext);
+  if (!ctx) throw new Error("useWallet must be used inside <WalletProvider>");
+  return ctx;
 }
 
-// alias local para mantener compatibilidad con el código actual
-export const useWallet = useWalletState;
-
-// ---------------------------------------------------------------------------
-// Tx real sobre CivicVote.
-//
-// El flujo es:
-//  - wallet conectado -> address conocido
-//  - usar AssembledTransaction.build() con el Client de civic-vote
-//  - firmar con la callback signTransaction de Freighter
-//  - enviar al ledger
-//
-// El kit expone signTransaction via useKit().signTransaction. Ese valor
-// ES el callback SEP-43 que el SDK de Stellar espera como signTransaction.
-// ---------------------------------------------------------------------------
-
-export function useSignTransaction(): StellarSignTransaction | undefined {
-  const kit = useKit();
-  if (!kit.isConnected) {
-    return undefined;
-  }
-  // stellar-wallet-kit v2 exposes `signTransaction` as the Freighter SEP-43
-  // callback shape `(xdr: string, opts?: SignTransactionOptions) => ...`.
-  // For the SDK's contract Client we need the older raw SEP-43 shape, so we
-  // adapt here. If the wallet version disagrees, treat as missing signer.
-  const kitSign = kit.signTransaction as KitSignTransaction | undefined;
-  if (!kitSign) {
-    return undefined;
-  }
-  // Re-export the stellar-sdk contract shape directly so callers get the right
-  // type without a runtime wrapper when the kit already satisfies it.
-  return (kitSign as unknown) as StellarSignTransaction;
+/**
+ * The signer handed to the contract `Client`.
+ *
+ * `null` when no wallet is connected — callers must treat that as "cannot
+ * submit a transaction", never as "sign anyway".
+ */
+export function useSignTransaction(): SignTransaction | null {
+  const { adapter, address } = useWallet();
+  return useMemo(() => {
+    if (!address) return null;
+    return adapter.signTransaction;
+  }, [adapter, address]);
 }
 
-export { Client, AssembledTransaction };
-
-export { Keypair } from "@stellar/stellar-sdk";
-
+export function describe(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  return typeof e === "string" ? e : "error desconocido en la cartera";
+}

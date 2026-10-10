@@ -1,5 +1,5 @@
 /**
- * Fail-closed chain reads for the CivicSys contracts.
+ * Fail-closed chain reads for the Brújula Cívica contracts.
  *
  * Every method returns Read<T>: `ok` means the chain answered exactly this;
  * `unknown` means we could make NO claim about chain state (RFC §0). There is
@@ -68,7 +68,15 @@ export function toCounts(v: unknown): Map<number, bigint> {
     if (typeof n !== "number" || !Number.isInteger(n) || n < 0) {
       throw new Error(`invalid count key ${String(k)}`);
     }
-    out.set(n, big(val));
+    // A vote count is a natural number: the contract only ever increments it,
+    // so a negative or fractional value is not a shape this chain can produce.
+    // Reject it here so the read becomes `unknown` instead of surfacing an
+    // impossible tally as a real answer.
+    const count = big(val);
+    if (count < 0n) {
+      throw new Error(`invalid count value for key ${n}: ${count}`);
+    }
+    out.set(n, count);
   };
   if (v instanceof Map) {
     for (const [k, val] of v) add(k, val);
@@ -100,7 +108,7 @@ function arrOfStr(v: unknown): string[] {
  * - functions declared `-> Result<T, E>` come back wrapped as `Ok { value }`
  *   (verified empirically against the deployed contracts). Duck-typed on the
  *   single `value` key so it survives bundle minification (no class names).
- *   None of the CivicSys contract structs has a lone `value` field.
+ *   None of the Brújula Cívica contract structs has a lone `value` field.
  */
 function unwrap(result: unknown): unknown {
   if (result !== null && typeof result === "object") {
@@ -116,7 +124,7 @@ function unwrap(result: unknown): unknown {
 /* reader                                                              */
 /* ------------------------------------------------------------------ */
 
-export class CivicReader {
+export class BrujulaReader {
   readonly record: DeploymentRecord;
   readonly rpcUrl: string;
   private readonly server: rpc.Server;
@@ -168,7 +176,7 @@ export class CivicReader {
 
   /** identity.get_credential — `null` is an on-chain answer (no credential), not an error. */
   getCredential(subject: string): Promise<Read<CredentialView | null>> {
-    return this.read("civic-identity", "get_credential", { subject }, (raw) => {
+    return this.read("brujula-identity", "get_credential", { subject }, (raw) => {
       if (raw === null || raw === undefined) return null;
       const o = raw as Record<string, unknown>;
       return {
@@ -184,11 +192,11 @@ export class CivicReader {
   }
 
   isEligible(subject: string): Promise<Read<boolean>> {
-    return this.read("civic-identity", "is_eligible", { subject }, bool);
+    return this.read("brujula-identity", "is_eligible", { subject }, bool);
   }
 
   getProposal(id: bigint | number): Promise<Read<ProposalView | null>> {
-    return this.read("civic-proposal", "get", { id: big(id) }, (raw) => {
+    return this.read("brujula-proposal", "get", { id: big(id) }, (raw) => {
       if (raw === null || raw === undefined) return null;
       const o = raw as Record<string, unknown>;
       return {
@@ -211,7 +219,7 @@ export class CivicReader {
 
   /** Computed status (0 SCHEDULED, 1 OPEN, 2 CLOSED, 3 CANCELLED). */
   proposalStatus(id: bigint | number): Promise<Read<number>> {
-    return this.read("civic-proposal", "status", { id: big(id) }, (raw) => {
+    return this.read("brujula-proposal", "status", { id: big(id) }, (raw) => {
       const n = Number(raw);
       if (!Number.isInteger(n) || n < 0 || n > 3) {
         throw new Error(`invalid status ${String(raw)}`);
@@ -221,11 +229,11 @@ export class CivicReader {
   }
 
   nextProposalId(): Promise<Read<bigint>> {
-    return this.read("civic-proposal", "next_id", {}, big);
+    return this.read("brujula-proposal", "next_id", {}, big);
   }
 
   getTally(proposalId: bigint | number): Promise<Read<TallyView | null>> {
-    return this.read("civic-vote", "get_tally", { proposal_id: big(proposalId) }, (raw) => {
+    return this.read("brujula-vote", "get_tally", { proposal_id: big(proposalId) }, (raw) => {
       if (raw === null || raw === undefined) return null;
       const o = raw as Record<string, unknown>;
       return {
@@ -241,7 +249,7 @@ export class CivicReader {
 
   hasVotedPublic(proposalId: bigint | number, voter: string): Promise<Read<boolean>> {
     return this.read(
-      "civic-vote",
+      "brujula-vote",
       "has_voted_public",
       { proposal_id: big(proposalId), voter },
       bool,
@@ -250,7 +258,7 @@ export class CivicReader {
 
   membershipRoot(proposalId: bigint | number): Promise<Read<string | null>> {
     return this.read(
-      "civic-vote",
+      "brujula-vote",
       "membership_root",
       { proposal_id: big(proposalId) },
       (raw) => (raw === null || raw === undefined ? null : hexOf(raw)),
@@ -258,11 +266,11 @@ export class CivicReader {
   }
 
   reportCount(): Promise<Read<bigint>> {
-    return this.read("civic-accountability", "count", {}, big);
+    return this.read("brujula-accountability", "count", {}, big);
   }
 
   getReport(reportId: bigint | number): Promise<Read<ReportView | null>> {
-    return this.read("civic-accountability", "get", { report_id: big(reportId) }, (raw) => {
+    return this.read("brujula-accountability", "get", { report_id: big(reportId) }, (raw) => {
       if (raw === null || raw === undefined) return null;
       const o = raw as Record<string, unknown>;
       return {

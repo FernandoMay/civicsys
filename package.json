@@ -1,19 +1,27 @@
 {
-  "name": "civicsys",
+  "name": "brujula-civica",
   "private": true,
-  "description": "CivicSys — verifiable civic participation infrastructure on Stellar (RFC CIVICSYS-ARCH-001)",
+  "description": "Brújula Cívica — participación cívica verificable sobre Stellar (RFC BRUJULA-CIVICA-ARCH-001)",
   "packageManager": "pnpm@9.15.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @civicsys/sdk test",
-    "test:live": "pnpm --filter @civicsys/sdk test:live",
-    "test:funding": "pnpm --filter @civicsys/sdk test:funding",
+    "test": "pnpm --filter @brugulacivica/sdk test && pnpm --filter @brugulacivica/dashboard test",
+    "test:contracts": "cargo test --workspace",
+    "test:live": "pnpm --filter @brugulacivica/sdk test:live",
+    "test:funding": "pnpm --filter @brugulacivica/sdk test:funding",
+    "test:all": "pnpm test:contracts && pnpm test",
     "fund:neighbors": "node scripts/fund-testnet-neighbors.ts",
-    "build": "pnpm --filter @civicsys/sdk build && pnpm --filter @civicsys/dashboard build",
-    "dev": "pnpm --filter @civicsys/dashboard dev",
-    "contracts:test": "cargo test",
+    "build": "pnpm --filter @brugulacivica/sdk build && pnpm --filter @brugulacivica/dashboard build",
+    "dev": "pnpm --filter @brugulacivica/dashboard dev",
+    "lint:contracts": "cargo fmt --all --check && cargo clippy --all-targets -- -D warnings",
     "contracts:build": "stellar contract build",
-    "verify:deployment": "./scripts/verify-deployment.sh deployments/testnet.json"
+    "deploy:testnet": "./scripts/deploy-testnet.sh",
+    "smoke": "./scripts/smoke-test.sh",
+    "verify:deployment": "./scripts/verify-deployment.sh deployments/testnet.json",
+    "verify:deployment:live": "./scripts/verify-deployment.sh deployments/testnet.json --live"
   }
 }

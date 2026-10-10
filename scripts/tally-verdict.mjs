@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CivicSys — compute the REAL verifier verdict for a proposal's on-chain tally.
+ * Brújula Cívica — compute the REAL verifier verdict for a proposal's on-chain tally.
  *
  * Wraps the SDK (the same pure verifier the dashboard renders): reads the
  * tally from the network named in deployments/testnet.json, runs all checks,
@@ -16,7 +16,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { loadDeployment } from "../packages/sdk/dist/node.js";
-import { CivicReader } from "../packages/sdk/dist/index.js";
+import { BrujulaReader } from "../packages/sdk/dist/index.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const proposalId = process.argv[2];
@@ -26,12 +26,12 @@ if (!/^\d+$/.test(proposalId ?? "")) {
   process.exit(2);
 }
 if (!existsSync(join(root, "packages", "sdk", "dist", "index.js"))) {
-  console.error("SDK not built — run: pnpm --filter @civicsys/sdk build");
+  console.error("SDK not built — run: pnpm --filter @brugulacivica/sdk build");
   process.exit(2);
 }
 
 const record = loadDeployment(join(root, "deployments", "testnet.json"));
-const reader = new CivicReader(record);
+const reader = new BrujulaReader(record);
 const r = await reader.verifyTally(BigInt(proposalId));
 
 const out = {

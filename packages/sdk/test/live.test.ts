@@ -9,11 +9,11 @@ import { describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadDeployment } from "../src/node.js";
-import { CivicReader } from "../src/reads.js";
+import { BrujulaReader } from "../src/reads.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const record = loadDeployment(join(root, "deployments", "testnet.json"));
-const reader = new CivicReader(record);
+const reader = new BrujulaReader(record);
 
 /** JSON.stringify with BigInt support for assertion messages. */
 const show = (r: unknown) =>
@@ -21,11 +21,11 @@ const show = (r: unknown) =>
 
 describe("live testnet reads", () => {
   it("reads the identity contract admin (deployed state exists)", async () => {
-    const r = await reader.admin("civic-identity");
+    const r = await reader.admin("brujula-identity");
     expect(r.status, show(r)).toBe("ok");
     if (r.status === "ok") {
       expect(r.value).toMatch(/^G[A-Z2-7]{55}$/);
-      expect(r.evidence.contractId).toBe(reader.contractId("civic-identity"));
+      expect(r.evidence.contractId).toBe(reader.contractId("brujula-identity"));
       expect(r.evidence.ledger).toBeGreaterThan(0);
     }
   });
@@ -55,7 +55,7 @@ describe("live testnet reads", () => {
     const r = await reader.proposalStatus(999999n);
     // contract traps with NotFound => unknown envelope, never a default
     expect(r.status).toBe("unknown");
-    if (r.status === "unknown") expect(r.reason).toContain("civic-proposal.status");
+    if (r.status === "unknown") expect(r.reason).toContain("brujula-proposal.status");
   });
 
   it("reads the admin's credential as null (not issued) or a well-formed record (issued)", async () => {

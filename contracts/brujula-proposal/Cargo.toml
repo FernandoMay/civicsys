@@ -1,0 +1,16 @@
+[package]
+name = "brujula-proposal"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Brújula Cívica proposal provenance and lifecycle windows (RFC BRUJULA-CIVICA-ARCH-001 §3.2)"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

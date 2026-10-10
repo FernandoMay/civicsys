@@ -59,7 +59,7 @@ describe("funding E2E (real testnet neighbor accounts)", () => {
   const ev = loadEvidence();
 
   it("evidence file is well-formed: schema, 4 addresses, no secrets", () => {
-    expect(ev.schema).toBe("civicsys/testnet-neighbors@1");
+    expect(ev.schema).toBe("brujula-civica/testnet-neighbors@1");
     expect(ev.network).toBe("testnet");
     expect(ev.accounts).toHaveLength(4);
     expect(ev.min_balance_xlm).toBeGreaterThan(0);
@@ -67,7 +67,7 @@ describe("funding E2E (real testnet neighbor accounts)", () => {
     const names = new Set<string>();
     for (const a of ev.accounts) {
       expect(a.address, show(a)).toMatch(G_RE);
-      expect(a.name).toMatch(/^civicsys-neighbor-[1-4]$/);
+      expect(a.name).toMatch(/^brujula-neighbor-[1-4]$/);
       expect(names.has(a.name)).toBe(false);
       names.add(a.name);
       expect(a.balance_xlm).toBeGreaterThanOrEqual(ev.min_balance_xlm);
