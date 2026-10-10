@@ -1,11 +1,13 @@
 {
   "reports": [
     {
-      "generated_at": "2026-10-10T20:45:27.012Z",
+      "generated_at": "2026-10-10T21:03:38.823Z",
+      "anchored": true,
+      "report_id": "4",
       "report_hash": "17d4a26adfe505597befe4d833203e040332ea121a9eb8ff300e02b6544bc34d",
       "evidence_hash": "d4592a4346991673f56729845ee60ca2ac36effccdd18b065f4b0a1d3d01860b",
       "overall_status": "CONTRADICTED",
-      "anchor_tx": "ab343f0be6156660d58c81e0406aae7afd6b6f42e62f8d13e36a463392e6ddfe"
+      "anchor_tx": "9fa73653dc09c6ccd03aa2cf4c38d65cc5ee843b441160a0e7fdc27b75681400"
     }
   ]
 }

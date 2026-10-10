@@ -259,6 +259,11 @@ async function main(): Promise<void> {
   })();
   index.reports.push({
     generated_at: report.generatedAt,
+    // Recorded explicitly: a dry run produces the same digests but NO on-chain
+    // anchor, and mixing the two in one list would let an unanchored evaluation
+    // be mistaken for evidence.
+    anchored: args.anchor,
+    report_id: reportId,
     report_hash: report.reportHash,
     evidence_hash: report.evidenceHash,
     overall_status: report.overallStatus,
