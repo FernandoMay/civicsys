@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Brújula Cívica — verificador público fail-closed sobre la red Stellar (RFC BRUJULA-CIVICA-ARCH-001)",
+  "description": "Br\u00fajula C\u00edvica \u2014 verificador p\u00fablico fail-closed sobre la red Stellar (RFC BRUJULA-CIVICA-ARCH-001)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
@@ -20,7 +20,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@testing-library/dom": "^10.4.0",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.5.2",
