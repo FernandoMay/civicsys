@@ -1,12 +1,12 @@
 [build]
-  command = "pnpm install --frozen-lockfile --prefer-offline=false && pnpm --filter @brugulacivica/dashboard build 2>&1 | tail -5"
+  command = "pnpm install --frozen-lockfile --prefer-offline=false && pnpm --filter @brugulacivica/dashboard build -- --cache-bust=20261010"
   publish = "apps/dashboard/dist"
   base = "apps/dashboard"
 
 [build.environment]
   NODE_VERSION = "20"
   PNPM_VERSION = "9.15.0"
-  NETLIFY_CACHE_BUST = "2026-10-10-10"
+  NETLIFY_CACHE_BUST = "2026-10-10-11"
 
 [functions]
   node_bundler = "esbuild"
