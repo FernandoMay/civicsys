@@ -7,15 +7,26 @@
   "engines": {
     "node": ">=20"
   },
+  "dependencies": {
+    "@brugulacivica/hermes": "workspace:*",
+    "@brugulacivica/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22"
+  },
   "scripts": {
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @brugulacivica/sdk test && pnpm --filter @brugulacivica/dashboard test",
+    "test": "pnpm --filter @brugulacivica/sdk test && pnpm --filter @brugulacivica/hermes test && pnpm --filter @brugulacivica/dashboard test",
     "test:contracts": "cargo test --workspace",
     "test:live": "pnpm --filter @brugulacivica/sdk test:live",
     "test:funding": "pnpm --filter @brugulacivica/sdk test:funding",
     "test:all": "pnpm test:contracts && pnpm test",
     "fund:neighbors": "node scripts/fund-testnet-neighbors.ts",
-    "build": "pnpm --filter @brugulacivica/sdk build && pnpm --filter @brugulacivica/dashboard build",
+    "hermes": "node --experimental-strip-types scripts/hermes-run.ts",
+    "hermes:anchor": "node --experimental-strip-types scripts/hermes-run.ts --anchor",
+    "commitment:demo": "node --experimental-strip-types scripts/commitment-flow.ts",
+    "ttl:keep": "./scripts/ttl-keeper.sh",
+    "build": "pnpm --filter @brugulacivica/sdk build && pnpm --filter @brugulacivica/hermes build && pnpm --filter @brugulacivica/dashboard build",
     "dev": "pnpm --filter @brugulacivica/dashboard dev",
     "lint:contracts": "cargo fmt --all --check && cargo clippy --all-targets -- -D warnings",
     "contracts:build": "stellar contract build",

@@ -19,8 +19,8 @@ FAQ: [`docs/faq.md`](docs/faq.md)
 
 | We do NOT claim | What exists instead |
 |---|---|
-| "ZK / anonymous voting" | `public_v1` (transparent) and `commitment_v1` (**privacy-preserving commitment, not ZK**) until a verifier contract exists (Phase 4) |
-| "AI says this is true" | Hermes doesn't exist yet; nothing AI-flavored is presented |
+| "ZK / anonymous voting" | `public_v1` (transparent) and `commitment_v1` (**privacy-preserving commitment, not ZK**) until a verifier contract exists (Phase 4b) |
+| "AI says this is true" | Hermes is a **deterministic** engine: literal claims checked against retrieved, content-hashed sources. No model, no judgement, reproducible digests |
 | "Powered by blockchain" as a feature | the chain has exactly one job: tamper-evident public verification |
 | Deployment "done" without proof | every contract carries address + tx + ledger + wasm sha256 + version in committed evidence |
 
@@ -88,6 +88,45 @@ Reproduce the full loop: `./scripts/smoke-test.sh` (writes
 `deployments/smoke-test.json`; re-runs are idempotent — already-issued and
 already-cast steps are **proved by on-chain reads**, not by parsing error text).
 
+## Hermes — deterministic evidence verification
+
+Not an AI system. Hermes retrieves real sources, hashes exactly what it
+retrieved, and checks literal claims against them under explicit, named rules.
+Same sources in, same report out, on any machine — which is what makes the
+on-chain anchor worth anything.
+
+```
+FUENTES → RETRICCIÓN → CONJUNTO DE EVIDENCIA → VERIFICACIÓN → REPORTE
+             │                │                    │           │
+      sha256 del cuerpo   JSON canónico     SUPPORTED /    report_hash
+                          + hash sha256    CONTRADICTED /  evidence_hash
+                                           UNVERIFIED            │
+                                                  anchor en BrujulaAccountability
+```
+
+El vocabulario de estado es fijo y `TRUE` **no** está en él: Hermes informa
+`SUPPORTED` / `CONTRADICTED` / `UNVERIFIED` / `UNKNOWN`, nunca "esto es cierto".
+
+Dos reglas fail-closed que los tests fijan:
+
+- una fuente que no se pudo recuperar produce `UNVERIFIED`, nunca
+  `CONTRADICTED` — un documento inalcanzable no es evidencia de ausencia;
+- `evidence_hash` cubre el **contenido** recuperado, no la marca de tiempo de
+  la descarga. Incluir la cabecera HTTP `Date` hacía que el digest cambiara en
+  cada ejecución, lo que habría vuelto el anclaje irreproducible para terceros.
+
+```bash
+pnpm hermes            # ejecuta con hermes.config.json, escribe evidencia local
+pnpm hermes:anchor     # …y ancla report_hash + evidence_hash en testnet
+pnpm commitment:demo   # flujo commitment_v1 completo: raíz Merkle + boleta
+pnpm ttl:keep          # refresca instance + wasm de los cuatro contratos
+```
+
+Prueba en vivo: reporte `#5` anclado en testnet y leído de vuelta con
+`BrujulaAccountability.get(5)`, ambos digests coincidentes. Las boletas
+`commitment_v1` se informan como `UNVERIFIED_COMMITMENT` — el contrato
+comprueba la raíz y el nullificador, **no** la pertenencia.
+
 ## Repository
 
 ```
@@ -98,9 +137,10 @@ brujula-civica/
 ├── docs/state-diagram.md            # every state machine + disabled states
 ├── docs/faq.md                      # honest Q&A (real vs not built)
 ├── contracts/                       # Rust workspace: 4 Soroban contracts
-├── packages/sdk/                    # @brugulacivica/sdk — fail-closed reads + verifier
+├── packages/sdk/                    # @brugulacivica/sdk — fail-closed reads, verifier, hashing, membership
+├── packages/hermes/                 # @brugulacivica/hermes — deterministic evidence verification (no AI)
 ├── apps/dashboard/                  # Vite + React verifier UI (fail-closed)
-├── scripts/                         # deploy / verify / smoke / fund (evidence-first)
+├── scripts/                         # deploy / verify / smoke / hermes / commitment / ttl / fund
 └── deployments/                     # committed evidence records
 ```
 
@@ -114,23 +154,29 @@ Node ≥ 20 + pnpm 9, `jq`.
 cargo test                                   # 49 tests
 stellar contract build                       # 4 wasm artifacts + hashes
 
-# sdk
+# sdk + hermes
 pnpm install
-pnpm --filter @brugulacivica/sdk test              # 27 offline verifier tests
+pnpm --filter @brugulacivica/sdk test              # 69 offline tests (verifier, hashing, membership)
+pnpm --filter @brugulacivica/hermes test           # 49 deterministic-evidence tests (real HTTP)
 pnpm --filter @brugulacivica/sdk test:live         # 7 live testnet reads
 pnpm --filter @brugulacivica/sdk test:funding      # 4 funded neighbours checked vs Horizon (fail-closed)
 
 # dashboard (fail-closed UI against testnet)
-pnpm --filter @brugulacivica/dashboard test   # 38 render + wallet-boundary tests
+pnpm --filter @brugulacivica/dashboard test   # 50 render + wallet + commitment tests
 pnpm dev                                      # http://127.0.0.1:5173
 
 # evidence
 ./scripts/verify-deployment.sh deployments/testnet.json          # artifacts ↔ record
 ./scripts/verify-deployment.sh deployments/testnet.json --live   # + on-chain proof
+./scripts/ttl-keeper.sh                                         # instance + wasm TTL
 
 # (re)deploy — writes fresh evidence with tx hashes + ledgers
 ./scripts/deploy-testnet.sh
 ./scripts/smoke-test.sh
+
+# evidence pipeline
+pnpm hermes:anchor                            # deterministic report → on chain
+pnpm commitment:demo                          # commitment_v1 end-to-end
 
 # testnet identities for citizen/voter E2E runs (friendbot + Horizon proof)
 pnpm fund:neighbors                            # writes deployments/testnet-neighbors.json

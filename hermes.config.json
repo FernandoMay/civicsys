@@ -1,0 +1,31 @@
+{
+  "$schema": "./hermes.config.schema.json",
+  "subject": "Demostración verificable: definiciones normativas de RFC 2119 (fuente pública permanente)",
+  "rules": [
+    {
+      "id": "rfc2119-key-words",
+      "description": "RFC 2119 enumera sus palabras clave normativas con comillas",
+      "claim": "\"MUST\", \"MUST NOT\", \"REQUIRED\", \"SHALL\", \"SHALL",
+      "minSources": 1
+    },
+    {
+      "id": "rfc2119-absolute-requirement",
+      "description": "RFC 2119 define MUST como requisito absoluto de la especificación",
+      "claim": "mean that the\n   definition is an absolute requirement of the specification",
+      "minSources": 1
+    },
+    {
+      "id": "rfc2119-self-referential",
+      "description": "RFC 2119 se cita a sí mismo como fuente de la interpretación",
+      "claim": "are to be interpreted as described in\n      RFC 2119",
+      "minSources": 1
+    },
+    {
+      "id": "absent-claim-demo",
+      "description": "Afirmación deliberadamente falsa. Demuestra que una fuente recuperada que NO contiene el texto produce CONTRADICTED, y no SUPPORTED por omisión.",
+      "claim": "zzz-esta-frase-no-aparece-en-ninguna-fuente",
+      "minSources": 1
+    }
+  ],
+  "sources": ["https://www.rfc-editor.org/rfc/rfc2119.txt"]
+}

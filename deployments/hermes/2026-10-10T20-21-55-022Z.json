@@ -1,0 +1,73 @@
+{
+  "schema": "brujula-civica/hermes-report@1",
+  "generated_at": "2026-10-10T20:21:55.022Z",
+  "subject": "Demostración verificable: definiciones normativas de RFC 2119 (fuente pública permanente)",
+  "config": "hermes.config.json",
+  "network": "testnet",
+  "contract_id": "CDFUVDSQLA4EM5DX3ZC2KXX5SKXAQNKP4J64M34DPQYAYBXEVO5SKJ6N",
+  "anchor_tx": "7a9a0430b2d4ec3610e455a7841b78c41ad729b2bafe3b9d7dbbc21b2911f010",
+  "report_id": "5",
+  "report_hash": "17d4a26adfe505597befe4d833203e040332ea121a9eb8ff300e02b6544bc34d",
+  "evidence_hash": "d4592a4346991673f56729845ee60ca2ac36effccdd18b065f4b0a1d3d01860b",
+  "overall_status": "CONTRADICTED",
+  "failed_source_count": 0,
+  "findings": [
+    {
+      "claim": "\"MUST\", \"MUST NOT\", \"REQUIRED\", \"SHALL\", \"SHALL",
+      "status": "SUPPORTED",
+      "ruleId": "rfc2119-key-words",
+      "ruleDescription": "RFC 2119 enumera sus palabras clave normativas con comillas",
+      "matchedSourceIndices": [
+        0
+      ],
+      "retrievedSourceCount": 1,
+      "detail": "las fuentes [0] contienen el texto esperado. 1 fuente(s) contienen la afirmación de 1 fuente(s) recuperada(s); se requieren 1"
+    },
+    {
+      "claim": "mean that the\n   definition is an absolute requirement of the specification",
+      "status": "SUPPORTED",
+      "ruleId": "rfc2119-absolute-requirement",
+      "ruleDescription": "RFC 2119 define MUST como requisito absoluto de la especificación",
+      "matchedSourceIndices": [
+        0
+      ],
+      "retrievedSourceCount": 1,
+      "detail": "las fuentes [0] contienen el texto esperado. 1 fuente(s) contienen la afirmación de 1 fuente(s) recuperada(s); se requieren 1"
+    },
+    {
+      "claim": "are to be interpreted as described in\n      RFC 2119",
+      "status": "SUPPORTED",
+      "ruleId": "rfc2119-self-referential",
+      "ruleDescription": "RFC 2119 se cita a sí mismo como fuente de la interpretación",
+      "matchedSourceIndices": [
+        0
+      ],
+      "retrievedSourceCount": 1,
+      "detail": "las fuentes [0] contienen el texto esperado. 1 fuente(s) contienen la afirmación de 1 fuente(s) recuperada(s); se requieren 1"
+    },
+    {
+      "claim": "zzz-esta-frase-no-aparece-en-ninguna-fuente",
+      "status": "CONTRADICTED",
+      "ruleId": "absent-claim-demo",
+      "ruleDescription": "Afirmación deliberadamente falsa. Demuestra que una fuente recuperada que NO contiene el texto produce CONTRADICTED, y no SUPPORTED por omisión.",
+      "matchedSourceIndices": [],
+      "retrievedSourceCount": 1,
+      "detail": "las fuentes recuperadas [0] no contienen el texto esperado. 0 fuente(s) contienen la afirmación de 1 fuente(s) recuperada(s); se requieren 1"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc2119.txt",
+      "finalUrl": "https://www.rfc-editor.org/rfc/rfc2119.txt",
+      "status": "RETRIEVED",
+      "httpStatus": 200,
+      "retrievedAt": "2026-10-10T20:21:54.000Z",
+      "contentHash": "3c2ceb7bfc84cd34720f4a5271338ab9d8280d34bdd1eb250c64306202f2ed8b",
+      "contentType": "text/plain;charset=utf-8",
+      "byteLength": 4723,
+      "error": null,
+      "text_bytes": 4723
+    }
+  ],
+  "report_text_omitted": true
+}

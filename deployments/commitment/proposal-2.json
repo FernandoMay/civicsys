@@ -1,0 +1,30 @@
+{
+  "schema": "brujula-civica/commitment-flow@1",
+  "generated_at": "2026-10-10T20:25:34.105Z",
+  "network": "testnet",
+  "proposal_id": 2,
+  "domain": "brujula-civica/testnet/roster",
+  "attributes": "district=00;role=citizen;cohort=commitment-demo",
+  "commitment_count": 3,
+  "commitments": [
+    "9778d6782dfa74dd1c21377c4eb8221d88bef3c5f07a13a894d349840a6bb85e",
+    "d82d512b598b6cb0e404bdb698a6a7d89235851d42c273f0d49a319b1b9a89bd",
+    "1bf99228ecab934e08059ff936fce1155da20d5487c9c46a2e5ea5ec822b90df"
+  ],
+  "merkle_root": "f38331a1b52955b0264e2aee5979713afc4bfaba0715956de64641de7d6d2ffc",
+  "nullifier_voter_1": "85acba147f99cc74eafc23a13d6434dbd0ddb51dc4ff1bfc1c54ed8e2afb1aee",
+  "merkle_path_length": 2,
+  "tally": {
+    "commitment_votes": 1,
+    "counts": {
+      "0": 1
+    },
+    "proposal_id": 2,
+    "public_votes": 0,
+    "total": 1,
+    "verification_mode": "commitment_v1"
+  },
+  "verification_mode_on_chain": "commitment_v1",
+  "honest_status": "UNVERIFIED_COMMITMENT",
+  "note": "El contrato no verifica caminos Merkle (RFC §5, fase 4a). La pertenencia es una afirmación, no una prueba. Se cierra en 4b con un verificador ZK que no existe."
+}

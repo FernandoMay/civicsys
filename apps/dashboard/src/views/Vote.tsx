@@ -18,7 +18,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PROPOSAL_STATUS, type Read, type VerificationResult } from "@brugulacivica/sdk";
 
-import { fetchTally, type ProposalRow } from "../lib/chain.js";
+import { fetchTally, reader, type ProposalRow } from "../lib/chain.js";
+import { commitmentDisclosure, generateVoterSecret, prepareCommitmentBallot } from "../lib/commitment.js";
 import { voteClient } from "../lib/contracts.js";
 import { describe, useSignTransaction, useWallet } from "../lib/wallet.js";
 import { UNKNOWN } from "../lib/format.js";
@@ -32,13 +33,21 @@ const CHOICES: { value: number; label: string; desc: string }[] = [
 
 export type TxPhase = "idle" | "signing" | "submitting" | "sent";
 
+type BallotMode = "public" | "commitment";
+
+const COMMITMENT_DOMAIN = "brujula-civica/testnet/roster";
+const COMMITMENT_ATTRIBUTES = "district=00;role=citizen;cohort=commitment-demo";
+
 type Receipt = {
   at: string;
   txHash: string;
   proposalId: bigint;
   choice: number;
   voter: string;
+  mode: BallotMode;
   confirmedLedger: string;
+  commitment: string | null;
+  nullifier: string | null;
 };
 
 export default function Vote({
@@ -54,6 +63,9 @@ export default function Vote({
   const signTransaction = useSignTransaction();
 
   const [choice, setChoice] = useState<number | null>(null);
+  const [mode, setMode] = useState<BallotMode>("public");
+  const [membershipRoot, setMembershipRoot] = useState<string | null>(null);
+  const [rootRead, setRootRead] = useState<Read<string | null> | null>(null);
   const [phase, setPhase] = useState<TxPhase>("idle");
   const [txError, setTxError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
@@ -72,6 +84,11 @@ export default function Vote({
     setTallyLoading(true);
     try {
       setTally(await fetchTally(id));
+      // A commitment ballot can only be built against a published root, so the
+      // mode switch depends on this read being fresh.
+      const root = await reader.membershipRoot(id);
+      setRootRead(root);
+      setMembershipRoot(root.status === "ok" ? root.value : null);
     } finally {
       setTallyLoading(false);
     }
@@ -105,6 +122,9 @@ export default function Vote({
     if (choice === null || selected === null) return;
 
     // Fail closed on every precondition rather than sending a malformed tx.
+    // A wallet is required in BOTH modes: a transaction needs a funded signer
+    // to pay fees, and `commitment_v1` hides the address from the *tally*, not
+    // from the transaction source account.
     if (!address) {
       setTxError("Conecta una cartera para emitir tu voto. Sin firma no hay voto.");
       return;
@@ -117,14 +137,52 @@ export default function Vote({
     setTxError(null);
     setPhase("signing");
     try {
-      const client = await voteClient(address, signTransaction);
+      const source = address;
+      const client = await voteClient(source, signTransaction);
 
-      setPhase("submitting");
-      const tx = await client.cast_public({
-        proposal_id: selected,
-        voter: address,
-        choice,
-      });
+      let commitment: string | null = null;
+      let nullifier: string | null = null;
+      let tx;
+
+      if (mode === "commitment") {
+        // The secret is generated locally and never leaves the browser
+        // unhashed: only its derived commitment and nullifier are submitted.
+        const secret = await generateVoterSecret();
+        const prepared = await prepareCommitmentBallot({
+          secret,
+          proposalId: selected,
+          choice,
+          membershipRoot,
+          domain: COMMITMENT_DOMAIN,
+          attributes: COMMITMENT_ATTRIBUTES,
+        });
+        if (!prepared.ok) {
+          setTxError(prepared.reason);
+          setPhase("idle");
+          return;
+        }
+        commitment = prepared.commitment;
+        nullifier = prepared.nullifier;
+
+        setPhase("submitting");
+        tx = await client.cast_commitment({
+          proposal_id: selected,
+          choice,
+          nullifier: prepared.nullifier,
+          commitment: prepared.commitment,
+          membership_root: prepared.membershipRoot,
+          // No verifier contract exists (RFC §5, phase 4b), so this field
+          // carries no proof. Downstream it is reported UNVERIFIED_COMMITMENT.
+          verifier_digest: prepared.nullifier,
+        });
+      } else {
+        setPhase("submitting");
+        tx = await client.cast_public({
+          proposal_id: selected,
+          voter: source,
+          choice,
+        });
+      }
 
       const sent = await tx.signAndSend();
       // Read the hashes from the actual RPC responses. Never synthesize one:
@@ -137,8 +195,11 @@ export default function Vote({
         txHash: hash,
         proposalId: selected,
         choice,
-        voter: address,
+        voter: source,
+        mode,
         confirmedLedger: ledger === undefined ? UNKNOWN : String(ledger),
+        commitment,
+        nullifier,
       });
       setPhase("sent");
       await reloadTally(selected);
@@ -218,6 +279,46 @@ export default function Vote({
                 </select>
               </label>
             )}
+          </fieldset>
+
+          <fieldset disabled={selected === null || !address}>
+            <legend className="vote-legend">1. Elige cómo se registra tu voto:</legend>
+            <label className={`vote-option ${mode === "public" ? "vote-option-selected" : ""}`}>
+              <input
+                type="radio"
+                name="ballot_mode"
+                value="public"
+                checked={mode === "public"}
+                onChange={() => setMode("public")}
+                className="vote-radio"
+              />
+              <div className="vote-option-content">
+                <span className="vote-option-label">Público (public_v1)</span>
+                <span className="vote-option-desc">
+                  Registrado contra tu dirección. Transparente y verificable.
+                </span>
+              </div>
+            </label>
+            <label className={`vote-option ${mode === "commitment" ? "vote-option-selected" : ""}`}>
+              <input
+                type="radio"
+                name="ballot_mode"
+                value="commitment"
+                checked={mode === "commitment"}
+                onChange={() => setMode("commitment")}
+                className="vote-radio"
+              />
+              <div className="vote-option-content">
+                <span className="vote-option-label">Por compromiso (commitment_v1)</span>
+                <span className="vote-option-desc">
+                  {membershipRoot === null
+                    ? rootRead?.status === "unknown"
+                      ? "No se pudo leer la raíz de membresía de esta propuesta."
+                      : "Ningún administrador publicó una raíz de membresía: el contrato rechazaría la boleta."
+                    : `Raíz publicada en cadena: ${membershipRoot.slice(0, 12)}… El recuento se indexa por nullificador, no por tu dirección.`}
+                </span>
+              </div>
+            </label>
           </fieldset>
 
           <fieldset disabled={selected === null || !address}>
@@ -328,7 +429,10 @@ function TallyPanel({
   onReload: () => void;
 }) {
   const verdict = tally?.status === "ok" ? tally.value.verdict : "unknown";
-  const mode = tally?.status === "ok" ? (tally.value.mode ?? UNKNOWN) : UNKNOWN;
+  // Named `tallyMode` to avoid shadowing the ballot-mode selector above it.
+  const tallyMode = tally?.status === "ok" ? (tally.value.mode ?? UNKNOWN) : UNKNOWN;
+  // `mode` is the raw on-chain label, or null when there is nothing to say.
+  const onChainMode = tally?.status === "ok" ? (tally.value.mode ?? null) : null;
   const t = tally?.status === "ok" ? tally.value.tally : null;
 
   return (
@@ -425,7 +529,8 @@ function TallyPanel({
       )}
 
       <div className="quorum-note">
-        <span className="muted">modo de verificación: {mode}</span>
+        <span className="muted">modo de verificación: {tallyMode}</span>
+        <p className="quorum-disclosure">{commitmentDisclosure(onChainMode)}</p>
         {tally?.status === "ok" && (
           <ul className="quorum-checks">
             {tally.value.checks.map((c) => (

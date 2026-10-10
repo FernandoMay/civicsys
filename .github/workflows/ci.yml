@@ -71,10 +71,28 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @brugulacivica/sdk typecheck
-      - name: SDK unit tests (offline, pure verifier logic)
+      - name: SDK unit tests (offline: verifier, normalisers, hashing, membership)
         run: pnpm --filter @brugulacivica/sdk test
       - name: Build sdk
         run: pnpm --filter @brugulacivica/sdk build
+
+  hermes:
+    name: Hermes — canonical JSON, retrieval, rules, hashing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @brugulacivica/sdk build
+      - run: pnpm --filter @brugulacivica/hermes typecheck
+      - name: Hermes tests (real HTTP retrieval, determinism, fail-closed rules)
+        run: pnpm --filter @brugulacivica/hermes test
+      - name: Build hermes
+        run: pnpm --filter @brugulacivica/hermes build
 
   dashboard:
     name: Dashboard — typecheck, tests, build
@@ -88,9 +106,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @brugulacivica/sdk build
-      - name: Typecheck
-        run: pnpm --filter @brugulacivica/dashboard typecheck
-      - name: Dashboard tests (fail-closed rendering, wallet boundary)
+      - run: pnpm --filter @brugulacivica/hermes build
+      - run: pnpm --filter @brugulacivica/dashboard typecheck
+      - name: Dashboard tests (fail-closed rendering, wallet boundary, commitments)
         run: pnpm --filter @brugulacivica/dashboard test
       - name: Build dashboard
         run: pnpm --filter @brugulacivica/dashboard build
