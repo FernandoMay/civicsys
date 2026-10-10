@@ -1,0 +1,9 @@
+{
+  "schema": "brujula-civica/smoke-fixture@1",
+  "proposal_id": 4,
+  "create_tx": null,
+  "title_hash": "971f58e15323e58c1944fa799b62175e723a8525e75e2822b1936ea2e1d6372c",
+  "first_seen": "2026-10-10T21:57:37Z",
+  "report_id": 7,
+  "anchor_tx": null
+}
