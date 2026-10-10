@@ -1,21 +1,20 @@
 /**
  * Accountability — reports anchored in `brujula-accountability`.
  *
- * This section used to be a fabricated "Hermes Civic Intelligence" engine:
- * invented quotes, invented hashes, "12 FUENTES PROCESADAS", "100% IPFS
- * Anclado", all presented as audited fact. Hermes does not exist in this
- * codebase and Phase 3 is not started, so that claim has no evidence behind it
- * and was removed rather than relabelled (RFC BRUJULA-CIVICA-ARCH-001 §0.3).
+ * The append-only report log: each row's `report_hash` and `evidence_hash` are
+ * bytes stored on-chain, and anyone can re-read them from the contract. There
+ * is no update or delete entrypoint; corrections are new reports.
  *
- * What is shown instead is real and checkable: the append-only report log.
- * Each row's `report_hash` and `evidence_hash` are bytes stored on-chain, and
- * anyone can re-read them from the contract.
+ * Hermes reports (kind "hermes") appear here like any other anchor. Their
+ * findings are reproducible off-chain from the committed evidence files in
+ * `deployments/hermes/`; this table shows the on-chain half of that proof.
  */
 
 import type { Read, ReportView } from "@brugulacivica/sdk";
+import type { ReportEntry } from "../lib/chain.js";
 import { dateOrUnknown, reasonOf, shortAddress, shortHash, UNKNOWN } from "../lib/format.js";
 
-export type ReportEntry = { id: bigint; report: Read<ReportView | null> };
+export type { ReportEntry };
 
 export default function Accountability({
   count,
@@ -31,137 +30,135 @@ export default function Accountability({
   contractId: string;
 }) {
   return (
-    <section className="hermes-section" id="reportes">
-      <div className="hermes-head">
-        <div className="hermes-head-left">
-          <div className="hermes-logo">
-            <svg className="hermes-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
-            </svg>
-            <span className="hermes-label">Rendición de Cuentas</span>
-            <span className="hermes-badge">SOLO-ANCLES</span>
+    <section className="py-space-xl bg-surface-container-low" id="reportes">
+      <div className="p-space-lg space-y-space-md">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
+          <div className="flex items-center gap-space-sm">
+            <div className="w-12 h-12 bg-primary text-on-primary flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[28px]" aria-hidden="true">
+                query_stats
+              </span>
+            </div>
+            <div>
+              <div className="flex items-center gap-space-xs flex-wrap">
+                <span className="font-headline-md text-headline-md text-on-surface font-bold">
+                  Rendición de Cuentas
+                </span>
+                <span className="font-code-sm text-code-sm bg-primary text-on-primary px-space-xs py-0.5">
+                  REGISTRO INMUTABLE
+                </span>
+              </div>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Cada fila es una entrada real de <code>brujula-accountability</code>:
+                sin edición ni borrado; una corrección es un reporte nuevo.
+              </p>
+            </div>
           </div>
-          <p className="hermes-lead">
-            Registro inmutable de reportes anclados en la cadena. Cada fila es una
-            entrada real de <code>brujula-accountability</code>: no existe función de
-            edición ni de borrado, y una corrección se publica como un reporte nuevo.
-          </p>
-        </div>
-        <div className="hermes-guarantee">
-          <span className="guarantee-label">TOTAL ANCLADO:</span>
-          <span className="guarantee-chip">
-            {count.status === "ok" ? count.value.toString() : UNKNOWN}
-          </span>
-        </div>
-      </div>
-
-      <div className="hermes-matrix">
-        <div className="matrix-head">
-          <div className="matrix-title-row">
-            <svg className="matrix-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-            </svg>
-            <h3 className="matrix-title">Reportes Anclados</h3>
-          </div>
-          <p className="matrix-sub">
-            Solo se listan reportes leídos de la cadena. Lo que no se puede leer, se
-            muestra como desconocido.
-          </p>
-          <span className="matrix-count">
-            {reports.length.toString()} MOSTRADOS
-          </span>
-        </div>
-
-        {loading ? (
-          <div className="unknown">
-            <span className="chip chip-unknown">CARGANDO</span>
-            <span className="reason">leyendo el registro de anclajes…</span>
-          </div>
-        ) : count.status === "unknown" ? (
-          <div className="unknown">
-            <span className="chip chip-unknown">{UNKNOWN}</span>
-            <span className="reason">{reasonOf(count)}</span>
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="unknown">
-            <span className="chip chip-unknown">SIN REPORTES</span>
-            <span className="reason">
-              el contrato responde correctamente, pero todavía no hay ningún reporte
-              anclado
+          <div className="flex items-center gap-space-sm shrink-0">
+            <span className="font-code-sm text-code-sm text-outline">TOTAL ANCLADO:</span>
+            <span className="font-code-sm text-code-sm bg-surface-container-lowest px-space-sm py-1 font-semibold text-primary">
+              {count.status === "ok" ? count.value.toString() : UNKNOWN}
             </span>
           </div>
-        ) : (
-          <table className="evidence-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Propuesta</th>
-                <th>Tipo</th>
-                <th>Autor</th>
-                <th>Hash del reporte</th>
-                <th>Anclado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.map(({ id, report }) => (
-                <ReportRow key={id.toString()} id={id} report={report} />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+        </div>
 
-      <p className="matrix-sub" style={{ marginTop: "12px" }}>
-        Contrato de anclaje:{" "}
-        <a
-          href={`${explorerBase}/contract/${contractId}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {contractId} ↗
-        </a>
-      </p>
+        <div className="bg-surface-container-lowest p-space-md space-y-space-sm">
+          <div className="flex items-center justify-between font-code-sm text-code-sm">
+            <span className="text-outline">
+              Solo reportes leídos de la cadena. Lo no legible se muestra como desconocido.
+            </span>
+            <span className="text-on-surface font-semibold">{reports.length.toString()} MOSTRADOS</span>
+          </div>
+
+          {loading ? (
+            <LoadingRow label="CARGANDO" reason="leyendo el registro de anclajes…" />
+          ) : count.status === "unknown" ? (
+            <LoadingRow label={UNKNOWN} reason={reasonOf(count) ?? "sin lectura"} />
+          ) : reports.length === 0 ? (
+            <LoadingRow
+              label="SIN REPORTES"
+              reason="el contrato responde correctamente, pero todavía no hay ningún reporte anclado"
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-body-sm text-body-sm">
+                <thead>
+                  <tr className="bg-surface-container-high text-on-surface-variant font-code-sm text-code-sm uppercase">
+                    <th className="py-2.5 px-space-sm">ID</th>
+                    <th className="py-2.5 px-space-sm">Propuesta</th>
+                    <th className="py-2.5 px-space-sm">Tipo</th>
+                    <th className="py-2.5 px-space-sm">Autor</th>
+                    <th className="py-2.5 px-space-sm">Hash del reporte</th>
+                    <th className="py-2.5 px-space-sm">Anclado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reports.map(({ id, report }, i) => (
+                    <ReportRow key={id.toString()} id={id} report={report} striped={i % 2 === 1} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <p className="font-code-sm text-code-sm text-outline">
+          Contrato de anclaje:{" "}
+          <a className="text-primary hover:underline brujula-break" href={`${explorerBase}/contract/${contractId}`} target="_blank" rel="noreferrer">
+            {contractId} ↗
+          </a>
+        </p>
+      </div>
     </section>
   );
 }
 
-function ReportRow({ id, report }: { id: bigint; report: Read<ReportView | null> }) {
+function LoadingRow({ label, reason }: { label: string; reason: string }) {
+  return (
+    <div className="flex items-center gap-space-sm p-space-sm bg-surface-container-low">
+      <span className="font-code-sm text-code-sm font-bold text-outline">[{label}]</span>
+      <span className="font-body-sm text-body-sm text-on-surface-variant">{reason}</span>
+    </div>
+  );
+}
+
+function ReportRow({ id, report, striped }: { id: bigint; report: Read<ReportView | null>; striped: boolean }) {
+  const rowCls = striped ? "bg-surface-container-low/50" : "bg-surface-container-lowest";
   if (report.status === "unknown") {
     return (
-      <tr>
-        <td className="cell-mono">#{id.toString()}</td>
-        <td colSpan={5}>
-          <div className="unknown">
-            <span className="chip chip-unknown">{UNKNOWN}</span>
-            <span className="reason">{reasonOf(report)}</span>
-          </div>
+      <tr className={rowCls}>
+        <td className="py-2.5 px-space-sm font-code-sm text-code-sm text-outline">#{id.toString()}</td>
+        <td colSpan={5} className="py-2.5 px-space-sm font-code-sm text-code-sm text-outline">
+          [{UNKNOWN}] {reasonOf(report)}
         </td>
       </tr>
     );
   }
-
   const r = report.value;
   if (r === null) {
     return (
-      <tr>
-        <td className="cell-mono">#{id.toString()}</td>
-        <td colSpan={5} className="muted">
+      <tr className={rowCls}>
+        <td className="py-2.5 px-space-sm font-code-sm text-code-sm text-outline">#{id.toString()}</td>
+        <td colSpan={5} className="py-2.5 px-space-sm font-body-sm text-body-sm text-on-surface-variant">
           el contrato no tiene ningún reporte con id {id.toString()}
         </td>
       </tr>
     );
   }
-
   return (
-    <tr>
-      <td className="cell-mono">#{r.id.toString()}</td>
-      <td className="cell-mono">#{r.proposal_id.toString()}</td>
-      <td className="cell-kind">{r.kind}</td>
-      <td className="cell-doc">{shortAddress(r.author)}</td>
-      <td className="cell-hash" title={`report ${r.report_hash} · evidencia ${r.evidence_hash}`}>
+    <tr className={`${rowCls} hover:bg-surface-container-low transition-colors`}>
+      <td className="py-2.5 px-space-sm font-code-sm text-code-sm text-outline">#{r.id.toString()}</td>
+      <td className="py-2.5 px-space-sm font-code-sm text-code-sm text-on-surface">#{r.proposal_id.toString()}</td>
+      <td className="py-2.5 px-space-sm font-code-sm text-code-sm text-on-surface">{r.kind}</td>
+      <td className="py-2.5 px-space-sm font-body-sm text-body-sm text-on-surface" title={r.author}>
+        {shortAddress(r.author)}
+      </td>
+      <td className="py-2.5 px-space-sm font-code-sm text-code-sm text-primary brujula-break" title={`reporte ${r.report_hash} · evidencia ${r.evidence_hash}`}>
         {shortHash(r.report_hash)}
       </td>
-      <td className="cell-doc">{dateOrUnknown(r.anchored_at)}</td>
+      <td className="py-2.5 px-space-sm font-body-sm text-body-sm text-on-surface-variant">
+        {dateOrUnknown(r.anchored_at)}
+      </td>
     </tr>
   );
 }

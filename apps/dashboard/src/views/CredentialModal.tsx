@@ -102,55 +102,59 @@ export default function CredentialModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-backdrop" id="credential-modal">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div className="modal-head">
-          <div className="modal-head-left">
-            <h2 className="modal-title" id="modal-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-margin-sm bg-on-surface/40" id="credential-modal">
+      <div className="bg-surface-container-lowest max-w-lg w-full p-space-lg shadow-xl space-y-space-md" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div className="flex items-center justify-between pb-space-xs">
+          <div className="flex items-center gap-space-xs">
+            <span className="material-symbols-outlined text-primary" aria-hidden="true">security</span>
+            <span className="font-headline-md text-headline-md font-bold text-on-surface" id="modal-title">
               Verificar credencial en cadena
-            </h2>
+            </span>
           </div>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Cerrar">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
+          <button type="button" className="text-on-surface-variant hover:text-on-surface" onClick={onClose} aria-label="Cerrar">
+            <span className="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <p className="modal-desc">
-          Consulta <code>brujula-identity</code> para una dirección pública. La
-          credencial se valida contra el estado real del contrato; no se infiere nada
-          ni se concede habilitación por soliciting esta pantalla.
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          Consulta <code className="font-code-sm text-code-sm">brujula-identity</code> para
+          una dirección pública. La credencial se valida contra el estado real del
+          contrato; esta pantalla no concede habilitación por sí misma.
         </p>
 
-        <form onSubmit={verify}>
-          <div className="modal-field">
-            <label className="modal-field-label" htmlFor="did-input">
-              DIRECCIÓN PÚBLICA (G…):
-            </label>
-            <input
-              id="did-input"
-              className="modal-input"
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="G…"
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </div>
-
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+        <form onSubmit={verify} className="space-y-space-xs">
+          <label className="font-code-sm text-code-sm text-outline block" htmlFor="did-input">
+            DIRECCIÓN PÚBLICA (G…):
+          </label>
+          <input
+            id="did-input"
+            className="w-full bg-surface p-space-sm font-code-sm text-code-sm text-on-surface outline-none focus:ring-1 focus:ring-primary brujula-break"
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="G…"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <div className="flex items-center justify-end gap-space-sm pt-space-xs">
+            <button
+              type="button"
+              className="px-space-md py-space-sm bg-surface-container text-on-surface font-body-sm font-semibold"
+              onClick={onClose}
+            >
               Cerrar
             </button>
-            <button type="submit" className="btn btn-primary" disabled={verdict.kind === "loading"}>
+            <button
+              type="submit"
+              className="px-space-md py-space-sm bg-primary text-on-primary font-body-sm font-semibold hover:bg-primary-container disabled:opacity-50"
+              disabled={verdict.kind === "loading"}
+            >
               {verdict.kind === "loading" ? "Consultando…" : "Verificar en cadena"}
             </button>
           </div>
         </form>
 
-        <div className="modal-status" aria-live="polite">
+        <div aria-live="polite">
           <VerdictPanel verdict={verdict} />
         </div>
       </div>
@@ -158,48 +162,50 @@ export default function CredentialModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function StatusRow({ k, v, highlight = false }: { k: string; v: React.ReactNode; highlight?: boolean }) {
+  return (
+    <div className="flex justify-between gap-space-sm">
+      <span className="font-code-sm text-code-sm text-outline shrink-0">{k}:</span>
+      <span className={`font-code-sm text-code-sm text-right brujula-break ${highlight ? "text-primary font-bold" : "text-on-surface"}`}>
+        {v}
+      </span>
+    </div>
+  );
+}
+
+function Notice({ label, reason, alert = false }: { label: string; reason: string; alert?: boolean }) {
+  return (
+    <div
+      className="flex items-center gap-space-sm p-space-sm bg-surface-container-low"
+      {...(alert ? { role: "alert" } : {})}
+    >
+      <span className="font-code-sm text-code-sm font-bold text-outline">[{label}]</span>
+      <span className="font-body-sm text-body-sm text-on-surface-variant">{reason}</span>
+    </div>
+  );
+}
+
 function VerdictPanel({ verdict }: { verdict: Verdict }) {
   switch (verdict.kind) {
     case "idle":
-      return (
-        <div className="unknown">
-          <span className="chip chip-unknown">SIN CONSULTAR</span>
-          <span className="reason">
-            introduce una dirección y pulsa "Verificar en cadena"
-          </span>
-        </div>
-      );
+      return <Notice label="SIN CONSULTAR" reason='introduce una dirección y pulsa "Verificar en cadena"' />;
     case "loading":
-      return (
-        <div className="unknown">
-          <span className="chip chip-unknown">LEYENDO</span>
-          <span className="reason">consultando brujula-identity…</span>
-        </div>
-      );
+      return <Notice label="LEYENDO" reason="consultando brujula-identity…" />;
     case "error":
       // `role="alert"` so a failed verification is announced, not rendered
       // silently into a corner of the modal.
-      return (
-        <div className="unknown" role="alert">
-          <span className="chip chip-unknown">{UNKNOWN}</span>
-          <span className="reason">{verdict.message}</span>
-        </div>
-      );
+      return <Notice label={UNKNOWN} reason={verdict.message} alert />;
     case "none":
       return (
-        <div className="unknown">
-          <span className="chip chip-unknown">SIN CREDENCIAL</span>
-          <span className="reason">
-            la cadena responde correctamente: no hay credencial emitida para esta
-            dirección, así que no puede votar
-          </span>
-        </div>
+        <Notice
+          label="SIN CREDENCIAL"
+          reason="la cadena responde correctamente: no hay credencial emitida para esta dirección, así que no puede votar"
+        />
       );
     case "found": {
       const revocada = verdict.status === CREDENTIAL_STATUS.REVOKED;
       const suspendida = verdict.status === CREDENTIAL_STATUS.SUSPENDED;
       const habilitada = verdict.eligible && !revocada && !suspendida;
-      const cls = habilitada ? "status-ok" : revocada ? "status-bad" : "status-pending";
       const label = habilitada
         ? "[✓ HABILITADA PARA VOTAR]"
         : revocada
@@ -208,38 +214,21 @@ function VerdictPanel({ verdict }: { verdict: Verdict }) {
             ? "[× SUSPENDIDA]"
             : "[× NO HABILITADA]";
       return (
-        <>
-          <div className="status-row">
-            <span className="status-key">ESTADO EN CADENA:</span>
-            <span className={`status-value ${cls}`}>{label}</span>
-          </div>
-          <div className="status-row">
-            <span className="status-key">ESTADO CREDENCIAL:</span>
-            <span className="status-value">{STATUS_LABEL[verdict.status] ?? UNKNOWN}</span>
-          </div>
-          <div className="status-row">
-            <span className="status-key">TIPO:</span>
-            <span className="status-value">{verdict.credentialType}</span>
-          </div>
-          <div className="status-row">
-            <span className="status-key">COMPROMISO (32 bytes):</span>
-            <span className="status-value">
-              <code title={verdict.commitment}>{shortHash(verdict.commitment, 16, 8)}</code>
-            </span>
-          </div>
-          <div className="status-row">
-            <span className="status-key">EMITIDA:</span>
-            <span className="status-value">{dateOrUnknown(verdict.issuedAt)}</span>
-          </div>
-          <div className="status-row">
-            <span className="status-key">ÚLTIMA ACTUALIZACIÓN:</span>
-            <span className="status-value">{dateOrUnknown(verdict.updatedAt)}</span>
-          </div>
-          <p className="modal-desc" style={{ marginTop: "10px" }}>
+        <div className="p-space-sm bg-surface-container-low space-y-space-xs">
+          <div className="font-code-sm text-code-sm text-primary font-bold">{label}</div>
+          <StatusRow k="ESTADO CREDENCIAL" v={STATUS_LABEL[verdict.status] ?? UNKNOWN} />
+          <StatusRow k="TIPO" v={verdict.credentialType} />
+          <StatusRow
+            k="COMPROMISO (32 bytes)"
+            v={<code title={verdict.commitment}>{shortHash(verdict.commitment, 16, 8)}</code>}
+          />
+          <StatusRow k="EMITIDA" v={dateOrUnknown(verdict.issuedAt)} />
+          <StatusRow k="ACTUALIZADA" v={dateOrUnknown(verdict.updatedAt)} />
+          <p className="font-body-sm text-body-sm text-on-surface-variant pt-space-xs">
             La cadena almacena únicamente este compromiso. Tu nombre, documento o
             correo nunca se registran aquí.
           </p>
-        </>
+        </div>
       );
     }
   }

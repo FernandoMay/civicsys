@@ -73,4 +73,19 @@
   --brujula-civica-font-display: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --brujula-civica-font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --brujula-civica-font-mono: 'JetBrains Mono', 'Geist Mono', SFMono-Regular, Menlo, monospace;
+
+  /* Fixed variants (homologated UI accents) */
+  --brujula-civica-secondary-fixed: #E2E2E5;
+  --brujula-civica-secondary-fixed-dim: #C6C6C9;
+  --brujula-civica-on-secondary-fixed: #1A1C1E;
+  --brujula-civica-on-secondary-fixed-variant: #454749;
+  --brujula-civica-primary-fixed: #A4F2D6;
+  --brujula-civica-primary-fixed-dim: #89D5BA;
+  --brujula-civica-on-primary-fixed: #002117;
+  --brujula-civica-on-primary-fixed-variant: #00513F;
+  --brujula-civica-tertiary-fixed: #FFDDB0;
+  --brujula-civica-tertiary-fixed-dim: #FDBA4F;
+  --brujula-civica-on-tertiary-fixed: #291800;
+  --brujula-civica-on-tertiary-fixed-variant: #614000;
+  --brujula-civica-on-background: #1B1C18;
 }
