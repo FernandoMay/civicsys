@@ -9,6 +9,7 @@
  */
 
 import { useMemo } from "react";
+import ProposalContent from "./ProposalContent.js";
 
 import { PROPOSAL_STATUS, PROPOSAL_STATUS_LABEL } from "@brugulacivica/sdk";
 import type { ProposalRow, ReportEntry } from "../lib/chain.js";
@@ -124,6 +125,7 @@ export default function ProposalDetail({
               <HashRow label="CID DE CONTENIDO" value={p?.content_cid ?? null} raw />
               <HashRow label="RAÍZ DE EVIDENCIA" value={p?.evidence_root ?? null} />
             </div>
+            {p && <ProposalContent proposal={p} />}
           </div>
 
           <div className="bg-surface-container-lowest p-space-lg space-y-space-md">
