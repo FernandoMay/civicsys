@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it, mock } from "node:test";
 
-import { handler } from "./pin-proposal.mjs";
+import { handler } from "../../netlify/functions/pin-proposal.mjs";
 
 const ORIGIN = "https://civicsys.netlify.app";
 const HOST = "civicsys.netlify.app";
