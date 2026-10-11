@@ -1,13 +1,28 @@
+# Brújula Cívica — Netlify build config.
+#
+# Monorepo pnpm: the dashboard lives in apps/dashboard, but the workspace root
+# (pnpm-lock.yaml, pnpm-workspace.yaml, package.json) is what makes the build
+# reproducible. So the build runs from the ROOT and publishes the dashboard's
+# real dist.
+#
+# Evidence that drove this shape:
+#  - Netlify resolves `publish` relative to the base directory
+#    (docs.netlify.com/build/configure-builds/overview, "Publish directory"),
+#    and the base directory is also what Netlify diffs to decide whether a
+#    build is required. Setting base = "apps/dashboard" therefore resolved
+#    publish to apps/dashboard/apps/dashboard/dist (nonexistent) and skipped
+#    builds for every push that did not touch apps/dashboard/**.
+#  - `| tail -20` after `pnpm install` used to mask the install exit code, so a
+#    frozen-lockfile failure did not fail the build here.
+#  - The pnpm version is pinned by package.json "packageManager"
+#    (pnpm@9.15.0) — the method Netlify documents for pnpm.
+
 [build]
-  command = "pnpm install --frozen-lockfile --prefer-offline=false 2>&1 | tail -20 && pnpm --filter @brugulacivica/dashboard build 2>&1 | tail -20"
+  command = "pnpm install --frozen-lockfile && pnpm --filter @brugulacivica/dashboard... build"
   publish = "apps/dashboard/dist"
-  base = "apps/dashboard"
 
 [build.environment]
   NODE_VERSION = "22"
-  PNPM_VERSION = "9.15.0"
-  NETLIFY_CACHE_BUST = "2026-10-11-9"
-  PNPM_FLAGS = "--no-optional --frozen-lockfile --prefer-offline=false"
 
 [functions]
   node_bundler = "esbuild"
