@@ -27,13 +27,13 @@ export default function Proposals({
   nextId,
   loading,
   onOpen,
-  onCreated,
+  onCreated = () => {},
 }: {
   rows: ProposalRow[];
   nextId: Read<bigint>;
   loading: boolean;
   onOpen: (proposalId: bigint) => void;
-  onCreated: () => Promise<void> | void;
+  onCreated?: () => Promise<void> | void;
 }) {
   const [filter, setFilter] = useState<Filter>("todas");
 
