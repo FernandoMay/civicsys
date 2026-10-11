@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { PROPOSAL_STATUS, PROPOSAL_STATUS_LABEL, type Read } from "@brugulacivica/sdk";
 import type { ProposalRow } from "../lib/chain.js";
 import { dateOrUnknown, reasonOf, shortAddress, shortHash, UNKNOWN } from "../lib/format.js";
+import ProposalComposer from "./ProposalComposer.js";
 
 type Filter = "todas" | "abiertas" | "cerradas";
 
@@ -26,11 +27,13 @@ export default function Proposals({
   nextId,
   loading,
   onOpen,
+  onCreated,
 }: {
   rows: ProposalRow[];
   nextId: Read<bigint>;
   loading: boolean;
   onOpen: (proposalId: bigint) => void;
+  onCreated: () => Promise<void> | void;
 }) {
   const [filter, setFilter] = useState<Filter>("todas");
 
@@ -48,6 +51,7 @@ export default function Proposals({
   return (
     <section className="py-space-xl" id="proposals">
       <div className="space-y-space-lg">
+        <ProposalComposer onCreated={onCreated} />
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-sm pb-space-sm">
           <div className="space-y-space-xs">
             <span className="font-code-sm text-code-sm text-primary uppercase font-bold tracking-wider">
