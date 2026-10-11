@@ -196,6 +196,40 @@ describe("Proposals — fail-closed status", () => {
     expect(screen.queryByText(/CIV-2025/)).toBeNull();
   });
 
+  // The card carries no title because the chain has none. What it must carry
+  // instead is the means to check it: the on-chain record and the CID object.
+  it("offers the explorer record and the IPFS object so the card is checkable", () => {
+    renderProposals({
+      rows: [row({ id: 1n, proposal: ok(proposal()) })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
+    const record = screen.getByRole("link", { name: /Ver registro en el explorador/i });
+    expect(record).toHaveAttribute(
+      "href",
+      "https://stellar.expert/explorer/testnet/contract/CC5M2DNOAOG4J3IT3XZPXZXLKBZRABTTIY5XJPDNYBUEAJE5SEZRDHAI",
+    );
+    const object = screen.getByRole("link", { name: /Ver objeto IPFS/i });
+    expect(object).toHaveAttribute(
+      "href",
+      `https://gateway.pinata.cloud/ipfs/${proposal().content_cid}`,
+    );
+  });
+
+  it("never renders a hash as if it were the proposal title", () => {
+    renderProposals({
+      rows: [row({ id: 1n, proposal: ok(proposal()) })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
+    // The old card read "Título (hash): a1b2c3…", which presented a digest as a
+    // heading. The hash is still shown, but labelled as the reference it is.
+    expect(screen.queryByText(/^Título \(hash\)/)).toBeNull();
+    expect(screen.getByText(/HASH DEL TÍTULO/)).toBeInTheDocument();
+  });
+
   it("renders DESCONOCIDO when the proposal record itself is unreadable", () => {
     renderProposals({
       rows: [row({ proposal: bad("nodo caído") })],

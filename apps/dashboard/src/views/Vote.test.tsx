@@ -30,7 +30,13 @@ const mocks = vi.hoisted(() => ({
   voteClient: vi.fn(),
 }));
 
-vi.mock("../lib/chain.js", () => ({ reader: mocks.reader, fetchTally: mocks.fetchTally }));
+// Partial mock: the real module is loaded so link builders and the deployment
+// record work, while the reads that would hit the network are replaced.
+vi.mock("../lib/chain.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/chain.js")>()),
+  reader: mocks.reader,
+  fetchTally: mocks.fetchTally,
+}));
 vi.mock("../lib/contracts.js", () => ({ voteClient: mocks.voteClient, proposalClient: vi.fn() }));
 
 /** A syntactically valid G address: "G" + exactly 55 base32 characters. */
@@ -258,6 +264,50 @@ describe("Vote — a public ballot that succeeds", () => {
     await waitFor(() => expect(screen.getByText(/¡VOTO EMITIDO!/)).toBeInTheDocument());
     expect(screen.getByText(/TX: abc123/)).toBeInTheDocument();
     expect(screen.getByText(/ledger: 123456/)).toBeInTheDocument();
+  });
+
+  // The receipt is only worth what its holder can check, so the transaction and
+  // the tally contract must both be one click away from it.
+  it("links the receipt to the transaction and the tally contract in the explorer", async () => {
+    const user = userEvent.setup();
+    const cast_public = vi.fn().mockResolvedValue({
+      signAndSend: vi.fn().mockResolvedValue({
+        sendTransactionResponse: { hash: "abc123" },
+        getTransactionResponse: { latestLedger: 123456 },
+      }),
+    });
+    mocks.voteClient.mockResolvedValue({ cast_public });
+    renderVote();
+
+    await choose(user, /A favor/i);
+    await user.click(screen.getByRole("button", { name: SEND }));
+    await waitFor(() => expect(screen.getByText(/¡VOTO EMITIDO!/)).toBeInTheDocument());
+
+    expect(screen.getByRole("link", { name: /Ver transacción en el explorador/i })).toHaveAttribute(
+      "href",
+      "https://stellar.expert/explorer/testnet/tx/abc123",
+    );
+    expect(screen.getByRole("link", { name: /Ver contrato de escrutinio/i })).toHaveAttribute(
+      "href",
+      "https://stellar.expert/explorer/testnet/contract/CCAC5O34PRORFLCXP5VBVJBGHDT25D3VASMN4SEY752RHKUKSU2JWNTP",
+    );
+  });
+
+  it("shows no transaction link when the RPC returned no hash", async () => {
+    const user = userEvent.setup();
+    const cast_public = vi.fn().mockResolvedValue({
+      signAndSend: vi.fn().mockResolvedValue({ sendTransactionResponse: {} }),
+    });
+    mocks.voteClient.mockResolvedValue({ cast_public });
+    renderVote();
+
+    await choose(user, /A favor/i);
+    await user.click(screen.getByRole("button", { name: SEND }));
+
+    await waitFor(() => expect(screen.getByText(/¡VOTO EMITIDO!/)).toBeInTheDocument());
+    // Offering a link without a hash would point the reader at nothing.
+    expect(screen.queryByRole("link", { name: /Ver transacción en el explorador/i })).toBeNull();
+    expect(screen.getByRole("link", { name: /Ver contrato de escrutinio/i })).toBeInTheDocument();
   });
 
   it("reports the hash as UNKNOWN when the RPC omits it", async () => {

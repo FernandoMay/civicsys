@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PROPOSAL_STATUS, sha256Utf8, type Read, type VerificationResult } from "@brugulacivica/sdk";
 
-import { fetchTally, reader, type ProposalRow } from "../lib/chain.js";
+import { explorerContract, explorerTx, fetchTally, reader, type ProposalRow } from "../lib/chain.js";
 import { commitmentDisclosure, generateVoterSecret, prepareCommitmentBallot } from "../lib/commitment.js";
 import { voteClient } from "../lib/contracts.js";
 import { describe, useSignTransaction, useWallet } from "../lib/wallet.js";
@@ -459,6 +459,29 @@ export default function Vote({
                   </>
                 )}
               </div>
+              {/* The receipt is only worth what the holder can check. Link the
+                  transaction and the tally contract directly, so the vote can be
+                  re-read from the explorer instead of taken on trust. */}
+              <div className="flex flex-wrap gap-space-sm mt-space-sm">
+                {receipt.txHash && (
+                  <a
+                    className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                    href={explorerTx(receipt.txHash)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver transacción en el explorador ↗
+                  </a>
+                )}
+                <a
+                  className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                  href={explorerContract("brujula-vote")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver contrato de escrutinio ↗
+                </a>
+              </div>
               <button type="button" className="mt-2 px-space-md py-space-sm bg-surface-container text-on-surface font-body-sm font-semibold" onClick={reset}>
                 Emitir otro voto
               </button>
@@ -549,19 +572,31 @@ function TallyPanel({
 
   return (
     <div className="bg-surface-container-lowest p-space-lg space-y-space-md">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-space-sm">
         <div className="flex items-center gap-space-xs">
           <span className="material-symbols-outlined text-outline text-[20px]" aria-hidden="true">analytics</span>
           <h3 className="font-headline-md text-headline-md text-on-surface">Monitoreo del Escrutinio</h3>
         </div>
-        <button
-          type="button"
-          onClick={onReload}
-          disabled={selected === null}
-          className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm disabled:opacity-50"
-        >
-          {loading ? "Leyendo…" : "Releer recuento"}
-        </button>
+        <div className="flex items-center gap-space-sm">
+          {/* The tally is only persuasive if the reader can re-read it from the
+              contract, so the link sits next to the number itself. */}
+          <a
+            className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm hover:bg-surface-container"
+            href={explorerContract("brujula-vote")}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver recuento en el explorador ↗
+          </a>
+          <button
+            type="button"
+            onClick={onReload}
+            disabled={selected === null}
+            className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm disabled:opacity-50"
+          >
+            {loading ? "Leyendo…" : "Releer recuento"}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-space-xs">

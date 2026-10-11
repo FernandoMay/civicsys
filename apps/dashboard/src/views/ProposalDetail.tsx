@@ -13,6 +13,7 @@ import ProposalContent from "./ProposalContent.js";
 
 import { PROPOSAL_STATUS, PROPOSAL_STATUS_LABEL } from "@brugulacivica/sdk";
 import type { ProposalRow, ReportEntry } from "../lib/chain.js";
+import { explorerContract, ipfsLink } from "../lib/chain.js";
 import { dateOrUnknown, shortAddress, shortHash, UNKNOWN } from "../lib/format.js";
 import type { Read, VerificationResult } from "@brugulacivica/sdk";
 
@@ -124,6 +125,29 @@ export default function ProposalDetail({
               <HashRow label="METADATOS (HASH)" value={p?.metadata_hash ?? null} />
               <HashRow label="CID DE CONTENIDO" value={p?.content_cid ?? null} raw />
               <HashRow label="RAÍZ DE EVIDENCIA" value={p?.evidence_root ?? null} />
+            </div>
+            {/* The detail screen is where a reader decides whether to believe
+                the chain, so both halves of the proof are one click away: the
+                on-chain record and the off-chain object the CID resolves to. */}
+            <div className="flex flex-wrap gap-space-sm pt-space-sm">
+              <a
+                className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                href={explorerContract("brujula-proposal")}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ver registro en el explorador ↗
+              </a>
+              {p?.content_cid && (
+                <a
+                  className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                  href={ipfsLink(p.content_cid)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver objeto IPFS ↗
+                </a>
+              )}
             </div>
             {p && <ProposalContent proposal={p} />}
           </div>
