@@ -36,8 +36,10 @@
       accepts only symbol or raw-XDR keys, not the composite `DataKey::*` keys
       used here. Closing it needs direct RPC access or a contract-level refresh
       entrypoint.
-- [ ] **IPFS upload pipeline (Phase 2).** Proposal CIDs are still a constant;
-      there is no upload step and no off-chain re-derivation in the UI.
+- [~] **IPFS proposal pipeline (Phase 2), first UI slice.** The dashboard branch now has a Pinata-backed Netlify Function and a proposal composer, plus off-chain re-derivation of title/description/metadata hashes. Requires `PINATA_JWT`, has not been run end-to-end in this environment, and the current per-instance upload limit is not a durable distributed abuse control.
+- [ ] **Evidence/report content references.** The deployed contracts anchor evidence/report hashes but do not persist a CID for each object. Design and deploy an explicit reference/index path before claiming the browser can retrieve and verify these objects end-to-end.
+- [ ] **Browser end-to-end acceptance.** With a funded testnet wallet and `PINATA_JWT`, exercise proposal creation, CID readback, hash mismatch, closed-window voting, duplicate-vote rejection, and tally re-read from a real browser.
+- [ ] **Durable upload abuse controls.** Replace the in-memory IP rate limit in the proposal pinning function with a shared store and configure provider-side quotas/alerts.
 - [ ] **Automatic claim extraction (Phase 3).** Today the operator declares the
       literal claims to check. There is no extraction from unstructured prose.
 - [ ] Remove the duplicated design tokens (`design/` and `packages/design/`
