@@ -172,7 +172,7 @@ export default function App() {
             onExplore={() => document.getElementById("proposals")?.scrollIntoView({ behavior: "smooth" })}
             onCheckCredential={() => setCredentialOpen(true)}
           />
-          <Proposals rows={rows} nextId={nextId} loading={loading} onOpen={openDetail} />
+          <Proposals rows={rows} nextId={nextId} loading={loading} onOpen={openDetail} onCreated={load} />
           <Vote rows={rows} selected={selected} onSelect={setSelected} />
           <Accountability
             count={reportState.count}
