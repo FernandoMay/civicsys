@@ -39,10 +39,9 @@ export default function Landing({
                 <span className="text-primary">Verificables por diseño.</span>
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
-                Infraestructura abierta de participación: proponer, deliberar,
-                decidir y <strong className="text-on-surface">verificar</strong>.
-                Cada dato de esta página sale de la cadena o se muestra como
-                desconocido. Nunca inventamos un resultado.
+                Infraestructura abierta de participación ciudadana: proponer, deliberar,
+                decidir y <strong className="text-on-surface">verificar</strong>. Cada dato de esta página sale de la
+                cadena o se muestra como desconocido. Nunca inventamos un resultado.
               </p>
             </div>
 
@@ -204,3 +203,10 @@ function Step({ n, icon, title, body, tag }: { n: string; icon: string; title: s
     </div>
   );
 }
+
+export function bigOrUnknown(read: { status: string; value?: bigint }): string {
+  if (!read || read.status !== "ok" || read.value === undefined) return "DESCONOCIDO";
+  return read.value.toString();
+}
+
+const UNKNOWN = "DESCONOCIDO";
