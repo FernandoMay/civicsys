@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { sha256Utf8 } from "@brugulacivica/sdk";
-import { fetchProposalRows, reader } from "../lib/chain.js";
+import { reader } from "../lib/chain.js";
 import { proposalClient } from "../lib/contracts.js";
 import { describe, useSignTransaction, useWallet } from "../lib/wallet.js";
 
