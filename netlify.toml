@@ -1,12 +1,12 @@
 [build]
-  command = "pnpm install --frozen-lockfile --prefer-offline=false && pnpm --filter @brugulacivica/dashboard build 2>&1 | tail -10"
+  command = "pnpm install --frozen-lockfile --prefer-offline=false && pnpm --filter @brugulacivica/dashboard build"
   publish = "apps/dashboard/dist"
   base = "apps/dashboard"
 
 [build.environment]
   NODE_VERSION = "22"
   PNPM_VERSION = "9.15.0"
-  NETLIFY_CACHE_BUST = "2026-10-10-17"
+  NETLIFY_CACHE_BUST = "2026-10-10-18"
   PNPM_FLAGS = "--no-optional --frozen-lockfile --prefer-offline=false"
 
 [functions]
