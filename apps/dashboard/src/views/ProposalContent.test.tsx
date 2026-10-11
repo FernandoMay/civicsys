@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ProposalContent from "./ProposalContent.js";
 import type { ProposalView } from "../lib/chain.js";
 
+vi.mock("@brugulacivica/sdk", () => ({
+  sha256Utf8: vi.fn(async () => "f".repeat(64)),
+}));
+
 const proposal: ProposalView = {
   id: 1n,
   proposer: "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUVW",
