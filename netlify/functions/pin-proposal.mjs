@@ -25,6 +25,10 @@ export async function handler(event) {
 
   const ip = event.headers?.["x-nf-client-connection-ip"] ?? event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? "unknown";
   const now = Date.now();
+  // Drop expired buckets so a warm function instance does not retain old IPs forever.
+  for (const [key, value] of uploadsByIp) {
+    if (now - value.startedAt >= WINDOW_MS) uploadsByIp.delete(key);
+  }
   const entry = uploadsByIp.get(ip);
   if (!entry || now - entry.startedAt >= WINDOW_MS) {
     uploadsByIp.set(ip, { startedAt: now, count: 1 });
