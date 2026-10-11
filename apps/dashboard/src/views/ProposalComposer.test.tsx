@@ -250,6 +250,13 @@ describe("ProposalComposer — IPFS is pinned before a signature is requested", 
     expect(content.schema).toBe("brujula-civica/proposal-content@1");
     expect(content.title).toBe(TITLE);
     expect(content.description).toBe(DESCRIPTION);
+
+    // Wait for the flow to finish before the test ends. Leaving it half-run
+    // lets its pending promise call proposalClient during the NEXT test, which
+    // then fails a "never called" assertion for a reason that is not its own.
+    await waitFor(() =>
+      expect(screen.queryByRole("status") ?? screen.queryByRole("alert")).not.toBeNull(),
+    );
   });
 });
 
