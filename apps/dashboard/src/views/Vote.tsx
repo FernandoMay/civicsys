@@ -86,6 +86,10 @@ export default function Vote({
       setTally(await fetchTally(id));
       // A commitment ballot can only be built against a published root, so the
       // mode switch depends on this read being fresh.
+      // Clear stale state immediately: never keep a previous proposal's root
+      // while the new proposal's membership state is still being read.
+      setMembershipRoot(null);
+      setRootRead(null);
       const root = await reader.membershipRoot(id);
       setRootRead(root);
       setMembershipRoot(root.status === "ok" ? root.value : null);
@@ -296,11 +300,12 @@ export default function Vote({
                   checked={mode === "commitment"}
                   onChange={() => setMode("commitment")}
                   label="Por compromiso (commitment_v1)"
+                  disabled={membershipRoot === null}
                   desc={
                     membershipRoot === null
                       ? rootRead?.status === "unknown"
-                        ? "No se pudo leer la raíz de membresía de esta propuesta."
-                        : "Ningún administrador publicó una raíz de membresía: el contrato rechazaría la boleta."
+                        ? "No se pudo leer la raíz de membresía de esta propuesta. Modo bloqueado hasta confirmar una raíz."
+                        : "Ningún administrador publicó una raíz de membresía: modo bloqueado porque el contrato rechazaría la boleta."
                       : `Raíz publicada en cadena: ${membershipRoot.slice(0, 12)}… El recuento se indexa por nullificador, no por tu dirección.`
                   }
                 />
@@ -438,6 +443,7 @@ function ModeOption({
   onChange,
   label,
   desc,
+  disabled = false,
 }: {
   name: string;
   value: string;
@@ -445,10 +451,13 @@ function ModeOption({
   onChange: () => void;
   label: string;
   desc: string;
+  disabled?: boolean;
 }) {
   return (
     <label
-      className={`cursor-pointer block transition-all p-space-md ${
+      className={`block transition-all p-space-md ${
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+      } ${
         checked ? "bg-surface-container-highest" : "bg-surface-container-low hover:bg-surface-container"
       }`}
     >
@@ -459,7 +468,8 @@ function ModeOption({
           value={value}
           checked={checked}
           onChange={onChange}
-          className="mt-1 w-4 h-4 accent-primary cursor-pointer"
+          disabled={disabled}
+          className="mt-1 w-4 h-4 accent-primary cursor-pointer disabled:cursor-not-allowed"
         />
         <div className="flex flex-col">
           <span className="font-body-md text-body-md font-semibold text-on-surface">{label}</span>
@@ -523,7 +533,7 @@ function TallyPanel({
         {t && t.total > 0n ? (
           <>
             <div className="w-full h-3 bg-surface-container overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-700" style={{ width: pct(t.public_votes, t.total) }} />
+              <div className="h-full bg-primary transition-all duration-700" style={{ width: `${pct(t.public_votes, t.total)}%` }} />
             </div>
             <div className="flex justify-between font-code-sm text-code-sm text-outline">
               <span>PÚBLICOS: {t.public_votes.toString()}</span>
@@ -536,7 +546,7 @@ function TallyPanel({
                   <div
                     key={choice}
                     className="bg-primary h-full"
-                    style={{ width: pct(n, t.total) }}
+                    style={{ width: `${pct(n, t.total)}%` }}
                     title={`Opción ${choice}: ${n.toString()}`}
                   />
                 ))}
@@ -592,6 +602,8 @@ function TallyPanel({
 }
 
 function pct(part: bigint, total: bigint): string {
-  if (total === 0n) return "0%";
-  return `${(Number((part * 10000n) / total) / 100).toFixed(1)}%`;
+  // Return the numeric percentage only. Callers add the CSS unit for widths
+  // and the display suffix for labels; returning '%' here caused '100.0%%'.
+  if (total === 0n) return "0.0";
+  return (Number((part * 10000n) / total) / 100).toFixed(1);
 }
