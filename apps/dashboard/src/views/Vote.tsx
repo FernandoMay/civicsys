@@ -101,10 +101,18 @@ export default function Vote({
   useEffect(() => {
     if (selected === null) {
       setTally(null);
+      setMembershipRoot(null);
+      setRootRead(null);
       return;
     }
     void reloadTally(selected);
   }, [selected, reloadTally]);
+
+  // If the selected proposal has no readable membership root, return to the
+  // public mode automatically instead of leaving an unusable mode selected.
+  useEffect(() => {
+    if (mode === "commitment" && membershipRoot === null) setMode("public");
+  }, [mode, membershipRoot]);
 
   // Default the selector to the first genuinely open proposal, or to whatever the
   // caller picked. Never to a hardcoded id.
