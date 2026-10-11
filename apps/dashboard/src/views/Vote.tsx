@@ -150,6 +150,34 @@ export default function Vote({
     setPhase("signing");
     try {
       const source = address;
+
+      // Revalidate the live contract state immediately before asking for a
+      // signature. The page's proposal list may be stale after the window closes.
+      const liveStatus = await reader.proposalStatus(selected);
+      if (liveStatus.status !== "ok") {
+        throw new Error("No se pudo verificar el estado actual de la iniciativa; no se envió el voto.");
+      }
+      if (liveStatus.value !== PROPOSAL_STATUS.OPEN) {
+        throw new Error("La ventana de votación ya no está abierta en la cadena.");
+      }
+
+      if (mode === "public") {
+        const eligibility = await reader.isEligible(source);
+        if (eligibility.status !== "ok") {
+          throw new Error("No se pudo verificar tu elegibilidad en la cadena; no se envió el voto.");
+        }
+        if (!eligibility.value) {
+          throw new Error("La credencial de esta cartera no está activa o no es elegible para votar.");
+        }
+        const alreadyVoted = await reader.hasVotedPublic(selected, source);
+        if (alreadyVoted.status !== "ok") {
+          throw new Error("No se pudo comprobar si esta cartera ya votó; no se envió una segunda boleta.");
+        }
+        if (alreadyVoted.value) {
+          throw new Error("Esta cartera ya emitió un voto público para esta iniciativa.");
+        }
+      }
+
       const client = await voteClient(source, signTransaction);
 
       let commitment: string | null = null;
