@@ -15,6 +15,8 @@ import ProposalDetail from "./views/ProposalDetail.js";
 import Accountability from "./views/Accountability.js";
 import Vote from "./views/Vote.js";
 import Guarantees from "./views/Guarantees.js";
+import DemoStatus from "./views/DemoStatus.js";
+import { useContentVerdicts } from "./views/useContentVerdicts.js";
 import CredentialModal from "./views/CredentialModal.js";
 import Shell, { type Route } from "./views/Shell.js";
 import {
@@ -126,6 +128,10 @@ export default function App() {
     [route, rows],
   );
 
+  // How many listed proposals a reader can actually open and check. The demo
+  // status panel needs this from evidence, not from an assumption.
+  const contentVerdicts = useContentVerdicts(rows);
+
   const detailReports = useMemo(() => {
     if (route.name !== "detail") return [];
     return reportState.reports.filter(
@@ -182,6 +188,13 @@ export default function App() {
             contractId={deployment.contracts["brujula-accountability"]!.contract_id}
           />
           <Guarantees />
+          <DemoStatus
+            proposalCount={stats?.proposals ?? null}
+            reportCount={stats?.anchoredReports ?? null}
+            ledger={ledger}
+            verifiableProposals={contentVerdicts.verified}
+            unverifiableProposals={contentVerdicts.unverifiable}
+          />
         </>
       )}
 
