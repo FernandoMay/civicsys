@@ -38,9 +38,10 @@ export async function handler(event) {
     entry.count += 1;
   }
 
-  const token = process.env.PINATA_JWT;
-  if (!token) return response(503, { error: "Publicación IPFS no configurada: falta PINATA_JWT en el entorno de funciones." });
-
+  // NOTE: the configuration check runs AFTER the request has been validated.
+  // Checking it first made every malformed request look like a 503 ("falta
+  // PINATA_JWT"), so a client could never learn what was actually wrong with
+  // its payload. Cheap input validation must not be masked by a missing secret.
   let body;
   try {
     body = JSON.parse(event.body ?? "");
@@ -68,6 +69,9 @@ export async function handler(event) {
   ) {
     return response(400, { error: "El contenido no cumple brujula-civica/proposal-content@1." });
   }
+
+  const token = process.env.PINATA_JWT;
+  if (!token) return response(503, { error: "Publicación IPFS no configurada: falta PINATA_JWT en el entorno de funciones." });
 
   const form = new FormData();
   form.append("file", new Blob([body.content], { type: "application/json" }), "proposal.json");

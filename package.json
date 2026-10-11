@@ -18,6 +18,7 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @brugulacivica/sdk test && pnpm --filter @brugulacivica/hermes test && pnpm --filter @brugulacivica/dashboard test",
+    "test:functions": "node --test netlify/functions/pin-proposal.test.mjs",
     "test:contracts": "cargo test --workspace",
     "test:live": "pnpm --filter @brugulacivica/sdk test:live",
     "test:funding": "pnpm --filter @brugulacivica/sdk test:funding",
