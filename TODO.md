@@ -40,6 +40,8 @@
 - [ ] **Evidence/report content references.** The deployed contracts anchor evidence/report hashes but do not persist a CID for each object. Design and deploy an explicit reference/index path before claiming the browser can retrieve and verify these objects end-to-end.
 - [ ] **Browser end-to-end acceptance.** With a funded testnet wallet and `PINATA_JWT`, exercise proposal creation, CID readback, hash mismatch, closed-window voting, duplicate-vote rejection, and tally re-read from a real browser.
 - [ ] **Durable upload abuse controls.** Replace the in-memory IP rate limit in the proposal pinning function with a shared store and configure provider-side quotas/alerts.
+- [x] **Automated coverage for the publishing and voting flows.** Both flows were untested, so every precondition was only as good as the last manual click. Added `ProposalComposer.test.tsx` (9 cases), `Vote.test.tsx` (15 cases pinning every check that must hold before a signature is requested), a regression test for `pct`, and 14 `node --test` cases for the pinning function itself. 82 dashboard tests, all green.
+- [ ] **Republish the four on-chain proposals.** Every deployed proposal anchors the same CID, and that object is a 117 kB JPEG, not `brujula-civica/proposal-content@1`. The detail view therefore reports MISMATCH for all four, which is the honest answer but means no live proposal is readable from the UI. Publish real content and re-anchor it.
 - [ ] **Automatic claim extraction (Phase 3).** Today the operator declares the
       literal claims to check. There is no extraction from unstructured prose.
 - [ ] Remove the duplicated design tokens (`design/` and `packages/design/`
