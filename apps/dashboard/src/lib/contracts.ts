@@ -51,6 +51,45 @@ export interface BrujulaIdentityContract {
   ): Promise<unknown>;
 }
 
+/** `brujula-proposal` — user-authorized proposal creation. */
+export interface BrujulaProposalContract {
+  create(
+    args: {
+      proposer: string;
+      title_hash: string;
+      description_hash: string;
+      metadata_hash: string;
+      content_cid: string;
+      evidence_root: string;
+      opens_at: bigint;
+      closes_at: bigint;
+    },
+    options?: MethodOptions,
+  ): Promise<AssembledTransaction<unknown>>;
+}
+
+export type ProposalClient = Client & BrujulaProposalContract;
+
+export async function proposalClient(
+  publicKey: string,
+  signTransaction: SignTransaction,
+): Promise<ProposalClient> {
+  const c = deployment.contracts["brujula-proposal"];
+  if (!c) throw new Error("deployment record missing brujula-proposal");
+  return Client.fromWasmHash<BrujulaProposalContract>(
+    c.wasm_sha256,
+    {
+      contractId: c.contract_id,
+      networkPassphrase: deployment.network_passphrase,
+      rpcUrl: RPC_URL,
+      allowHttp: RPC_URL.startsWith("http:"),
+      publicKey,
+      signTransaction,
+    },
+    "hex",
+  );
+}
+
 export type VoteClient = Client & BrujulaVoteContract;
 
 export async function voteClient(
