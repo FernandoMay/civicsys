@@ -28,13 +28,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The rustc version below must stay the one recorded in
-      # deployments/testnet.json (`toolchain.rustc`). 1.99.0 reproduces the four
-      # committed wasm sha256 hashes byte for byte; 1.94.0 does not, which would
-      # make "verify-deployment.sh" fail and silently break RFC §9 reproducibility.
-      # Do not bump it without re-running scripts/deploy-testnet.sh and
-      # re-committing the record.
-      - uses: dtolnay/rust-toolchain@${{ env.RUST_VERSION }}
+      # The rustc version must stay the one recorded in deployments/testnet.json
+      # (`toolchain.rustc`). 1.99.0 reproduces the four committed wasm sha256
+      # hashes byte for byte; 1.94.0 does not, so this job would fail the
+      # deployment record check and the uploaded artifact would not match the
+      # deployed contracts. Do not bump it without re-running
+      # scripts/deploy-testnet.sh and re-committing the record.
+      # It has to be a literal: GitHub Actions does not allow ${{ env.* }} in a
+      # step's `uses`, and using it there invalidates the whole workflow (the run
+      # is then created with zero jobs). Keep it in sync with env.RUST_VERSION.
+      - uses: dtolnay/rust-toolchain@1.99.0
         with:
           targets: wasm32v1-none
           components: rustfmt, clippy
