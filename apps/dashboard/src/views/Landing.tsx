@@ -204,9 +204,3 @@ function Step({ n, icon, title, body, tag }: { n: string; icon: string; title: s
   );
 }
 
-export function bigOrUnknown(read: { status: string; value?: bigint }): string {
-  if (!read || read.status !== "ok" || read.value === undefined) return "DESCONOCIDO";
-  return read.value.toString();
-}
-
-const UNKNOWN = "DESCONOCIDO";
