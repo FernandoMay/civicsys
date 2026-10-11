@@ -97,7 +97,7 @@ export async function handler(event) {
   } catch {
     return response(502, { error: "El proveedor IPFS devolvió una respuesta inválida." });
   }
-  if (typeof pinned?.IpfsHash !== "string" || !pinned.IpfsHash.startsWith("bafy")) {
+  if (typeof pinned?.IpfsHash !== "string" || !(/^b[a-z2-7]{20,}$/.test(pinned.IpfsHash) || /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(pinned.IpfsHash))) {
     return response(502, { error: "El proveedor no devolvió un CID válido." });
   }
 
