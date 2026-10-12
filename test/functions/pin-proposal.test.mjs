@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it, mock } from "node:test";
 
+import { readFileSync } from "node:fs";
+
 import { handler } from "../../netlify/functions/pin-proposal.mjs";
 
 const ORIGIN = "https://civicsys.netlify.app";
@@ -237,5 +239,44 @@ describe("pin-proposal — capability probe (GET)", () => {
     assert.equal(bodyOf(res).configured, true);
     assert.equal(bodyOf(res).ready, false);
     assert.match(bodyOf(res).reason, /no respondió/);
+  });
+});
+
+// The schema name is agreed in three places that cannot import each other: the
+// composer that writes it, the function that validates it, and the verifier
+// that reads it back. When they drift, nothing crashes. Publishing goes through
+// and the detail quietly reports MISMATCH, with nothing anywhere saying why.
+//
+// The app side shares one constant; this pins the function's copy to it.
+describe("the schema name is the same everywhere it is written", () => {
+  const APP_SCHEMA = "brujula-civica/proposal-content@1";
+
+  it("matches the constant the app publishes and verifies against", () => {
+    const content = readFileSync(
+      new URL("../../apps/dashboard/src/lib/content.ts", import.meta.url),
+      "utf8",
+    );
+    const declared = content.match(/const SCHEMA = "([^"]+)"/)?.[1];
+    assert.equal(declared, APP_SCHEMA);
+  });
+
+  it("matches what the composer writes and the function validates", () => {
+    const composer = readFileSync(
+      new URL("../../apps/dashboard/src/views/ProposalComposer.tsx", import.meta.url),
+      "utf8",
+    );
+    // The composer must reference the shared constant, not a second literal.
+    assert.ok(
+      composer.includes("schema: PROPOSAL_CONTENT_SCHEMA"),
+      "ProposalComposer hardcodes the schema again instead of importing it",
+    );
+    assert.ok(!/schema: "brujula-civica\//.test(composer));
+
+    const fn = readFileSync(
+      new URL("../../netlify/functions/pin-proposal.mjs", import.meta.url),
+      "utf8",
+    );
+    const validated = fn.match(/content\?\.schema !== "([^"]+)"/)?.[1];
+    assert.equal(validated, APP_SCHEMA);
   });
 });

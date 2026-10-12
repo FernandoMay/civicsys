@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 
 import { sha256Utf8 } from "@brugulacivica/sdk";
 import { reader } from "../lib/chain.js";
+import { PROPOSAL_CONTENT_SCHEMA } from "../lib/content.js";
 import { proposalClient } from "../lib/contracts.js";
 import { describe, useSignTransaction, useWallet } from "../lib/wallet.js";
 
@@ -67,7 +68,10 @@ export default function ProposalComposer({ onCreated }: Props) {
       // A unique timestamp makes the exact uploaded payload content-addressed
       // and avoids confusing an earlier proposal with this transaction.
       const content = JSON.stringify({
-        schema: "brujula-civica/proposal-content@1",
+        // The same constant the verifier and the pin function check. Writing
+        // the literal here instead made a rename a silent failure: publishing
+        // would go through and the detail would report MISMATCH with no clue.
+        schema: PROPOSAL_CONTENT_SCHEMA,
         title: cleanTitle,
         description: cleanDescription,
         metadata,
