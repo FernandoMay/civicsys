@@ -4,6 +4,15 @@
  * `@stellar/freighter-api` is the official package published by Stellar Labs.
  * The import is dynamic so the dashboard still builds and its tests still run
  * in a browser without the extension installed.
+ *
+ * This adapter targets the v6 surface. The old code called
+ * `getPublicKey({ sign: true })`, a name that does not exist in v6: the package
+ * exports `getAddress`, `requestAccess`, `isAllowed`, `isConnected` and
+ * `signTransaction`. Because the check was `typeof api.getPublicKey ===
+ * "function"`, the module loaded and was then thrown away, so every browser
+ * reported "no se pudo cargar el módulo de Freighter" with the extension
+ * installed and working. Every response is also inspected for `error`, which
+ * is how this package reports a rejected authorisation.
  */
 
 import type { SignTransaction } from "@stellar/stellar-sdk/contract";
@@ -11,22 +20,94 @@ import { WalletError, type WalletAdapter } from "./wallet.js";
 
 const TESTNET_PASSPHRASE = "Test SDF Network ; September 2015";
 
+/**
+ * Every v6 call resolves to its payload plus an optional `error`. A result that
+ * carries an error is a failure even though the promise resolved, so the error
+ * has to be read before the payload is trusted.
+ */
+type WithError<T> = T & { error?: { message?: string; code?: number } };
+
 type FreighterApi = {
-  isConnected(): Promise<boolean>;
-  getPublicKey(opts?: { address?: string; sign?: boolean }): Promise<string>;
-  signTransaction(
+  isBrowser?: boolean;
+  getAddress: () => Promise<WithError<{ address: string }>>;
+  requestAccess: () => Promise<WithError<{ address: string }>>;
+  isAllowed: () => Promise<WithError<{ isAllowed: boolean }>>;
+  isConnected: () => Promise<WithError<{ isConnected: boolean }>>;
+  signTransaction: (
     xdr: string,
     opts?: { networkPassphrase?: string; address?: string },
-  ): Promise<{ signedTxXdr: string }>;
-  signMessage?(message: string, opts?: { networkPassphrase?: string }): Promise<{ signedMessage: string }>;
+  ) => Promise<WithError<{ signedTxXdr: string; signerAddress: string }>>;
+  WatchWalletChanges?: unknown;
 };
+
+/**
+ * How long the extension gets to answer.
+ *
+ * The package speaks to Freighter over window.postMessage and waits for a
+ * reply. With no extension installed the promise never settles, so an unbounded
+ * call is indistinguishable from a dead button: no error, no state, nothing.
+ */
+const PROBE_TIMEOUT_MS = 5_000;
+const CONNECT_TIMEOUT_MS = 20_000;
+
+const UNREACHABLE =
+  "Freighter no respondió. Comprueba que la extensión está instalada, desbloqueada y que este sitio está permitido en su configuración.";
+
+async function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Wrapper names the module is known to sit behind.
+ *
+ * The package ships a UMD bundle. Vite code-splits it into a dynamic chunk and
+ * Rollup re-exports it under a minified name, so the deployed chunk literally
+ * ends with `export { X as i }`. The callable API can therefore sit one, two
+ * or three levels in, behind `default`, behind `i`, behind `freighterApi`.
+ *
+ * The wrapper names are probed explicitly rather than through `Object.keys`,
+ * because some containers (vitest's module proxy, Rollup's interop) report an
+ * empty key list while their properties are still reachable.
+ */
+const WRAPPER_KEYS = ["default", "freighterApi", "module", "exports", "i"] as const;
+
+function isFreighterApi(value: unknown): value is FreighterApi {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.getAddress === "function" && typeof v.requestAccess === "function";
+}
+
+function findApi(value: unknown, depth = 0): FreighterApi | null {
+  if (!value || typeof value !== "object" || depth > 4) return null;
+  if (isFreighterApi(value)) return value;
+  const v = value as Record<string, unknown>;
+  for (const key of WRAPPER_KEYS) {
+    if (key in v) {
+      const found = findApi(v[key], depth + 1);
+      if (found) return found;
+    }
+  }
+  for (const key of Object.keys(v)) {
+    if ((WRAPPER_KEYS as readonly string[]).includes(key)) continue;
+    const found = findApi(v[key], depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
 
 async function loadFreighter(): Promise<FreighterApi | null> {
   try {
-    const mod = await import("@stellar/freighter-api");
-    const api = ((mod as unknown as { default?: FreighterApi }).default ??
-      mod) as unknown as FreighterApi;
-    return api && typeof api.getPublicKey === "function" ? api : null;
+    return findApi(await import("@stellar/freighter-api"));
   } catch {
     return null;
   }
@@ -39,41 +120,13 @@ function requireAddress(address: string | null | undefined): string {
   return address;
 }
 
-/**
- * A promise that rejects instead of hanging.
- *
- * The Freighter package talks to the extension over window.postMessage and
- * waits for a reply. With no reply the promise simply never settles, so a click
- * on "connect" looked like nothing at all: no error, no state change, nothing.
- * A bound that fails loudly is the only honest behaviour here.
- */
-async function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      work,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new WalletError(message)), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
+/** Turns a resolved-but-errored response into a rejection. */
+function orThrow<T extends { error?: { message?: string } }>(result: T, what: string): T {
+  if (result?.error) {
+    throw new WalletError(`${what}: ${result.error.message ?? "Freighter no dio más detalle"}`);
   }
+  return result;
 }
-
-/**
- * How long to give the extension to answer a probe, and to answer a connect.
- *
- * The package speaks to Freighter over window.postMessage and waits. With no
- * extension installed the promise never settles, so an unbound call is
- * indistinguishable from a dead button. These bounds make the difference
- * between "installed", "not installed" and "not answering" visible.
- */
-const PROBE_TIMEOUT_MS = 5_000;
-const CONNECT_TIMEOUT_MS = 15_000;
-
-const NO_EXTENSION_ON_CONNECT =
-  "Freighter no respondió. Comprueba que la extensión está instalada, desbloqueada y que este sitio está permitido en su configuración.";
 
 export const freighterAdapter: WalletAdapter = {
   name: "Freighter",
@@ -81,16 +134,12 @@ export const freighterAdapter: WalletAdapter = {
   async isAvailable(): Promise<boolean> {
     const api = await loadFreighter();
     if (!api) return false;
-    // `window.freighter` is only a shortcut the package itself falls back from:
-    // when it is absent the package still talks over postMessage. Treating the
-    // missing shortcut as "no wallet" rejects installs that work fine.
-    //
-    // So availability is answered by the thing that matters: does the extension
-    // reply to a probe? A `false` reply means installed-but-not-authorised,
-    // which is still an installed extension.
-    if (typeof api.isConnected !== "function") return true;
+    // An answer of any kind means the extension is there: `isAllowed: false`
+    // is installed-but-unauthorised, which is still an installed extension and
+    // must not be reported as a missing wallet. A response carrying `error` is
+    // the package saying it could not reach the extension at all.
     try {
-      await withTimeout(api.isConnected(), PROBE_TIMEOUT_MS, "sonda sin respuesta");
+      orThrow(await withTimeout(api.isAllowed(), PROBE_TIMEOUT_MS, "sonda sin respuesta"), "Sonda");
       return true;
     } catch {
       return false;
@@ -103,21 +152,15 @@ export const freighterAdapter: WalletAdapter = {
       throw new WalletError("No se pudo cargar el módulo de Freighter. Recarga la página.");
     }
     try {
-      // `sign: true` makes Freighter prompt for access when not yet authorised.
-      const key = await withTimeout(
-        api.getPublicKey({ sign: true }),
-        CONNECT_TIMEOUT_MS,
-        NO_EXTENSION_ON_CONNECT,
+      const result = orThrow(
+        await withTimeout(api.requestAccess(), CONNECT_TIMEOUT_MS, UNREACHABLE),
+        "Freighter rechazó la autorización",
       );
-      return requireAddress(key);
+      return requireAddress(result.address);
     } catch (e) {
       throw e instanceof WalletError
         ? e
-        : new WalletError(
-            e instanceof Error && e.message
-              ? `Freighter rechazó la conexión: ${e.message}`
-              : "Freighter rechazó la conexión",
-          );
+        : new WalletError(e instanceof Error ? e.message : "Freighter rechazó la conexión");
     }
   },
 
@@ -125,23 +168,12 @@ export const freighterAdapter: WalletAdapter = {
     const api = await loadFreighter();
     if (!api) return null;
     try {
-      // Absence of an answer means no extension, same as the probe in
-      // isAvailable(); a `false` from isConnected just means no saved session.
-      if (typeof api.isConnected === "function") {
-        try {
-          await withTimeout(api.isConnected(), PROBE_TIMEOUT_MS, "sonda sin respuesta");
-        } catch {
-          return null;
-        }
-      }
-      const key = await withTimeout(
-        api.getPublicKey(),
-        10_000,
-        "Freighter no respondió al comprobar la sesión.",
-      );
-      return requireAddress(key);
+      const allowed = await withTimeout(api.isAllowed(), PROBE_TIMEOUT_MS, "sonda sin respuesta");
+      if (allowed.error || !allowed.isAllowed) return null;
+      const result = orThrow(await api.getAddress(), "Freighter no devolvió la dirección");
+      return requireAddress(result.address);
     } catch {
-      // Not authorised yet, or the extension went away. Both are normal states.
+      // No session, or the extension went away. Both are normal states.
       return null;
     }
   },
@@ -154,14 +186,15 @@ export const freighterAdapter: WalletAdapter = {
   signTransaction: (async (xdr: string) => {
     const api = await loadFreighter();
     if (!api) {
-      throw new WalletError("Freighter no está instalada: no se puede firmar la transacción");
+      throw new WalletError("No se pudo cargar el módulo de Freighter: no se puede firmar");
     }
-    const { signedTxXdr } = await api.signTransaction(xdr, {
-      networkPassphrase: TESTNET_PASSPHRASE,
-    });
-    if (!signedTxXdr) {
+    const result = orThrow(
+      await api.signTransaction(xdr, { networkPassphrase: TESTNET_PASSPHRASE }),
+      "Freighter rechazó la firma",
+    );
+    if (!result.signedTxXdr) {
       throw new WalletError("Freighter devolvió una transacción sin firmar");
     }
-    return { signedTxXdr };
+    return { signedTxXdr: result.signedTxXdr };
   }) as unknown as SignTransaction,
 };
