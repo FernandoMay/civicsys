@@ -61,27 +61,43 @@ async function withTimeout<T>(work: Promise<T>, ms: number, message: string): Pr
   }
 }
 
-/** Milliseconds Freighter gets to answer before we call it unreachable. */
+/**
+ * How long to give the extension to answer a probe, and to answer a connect.
+ *
+ * The package speaks to Freighter over window.postMessage and waits. With no
+ * extension installed the promise never settles, so an unbound call is
+ * indistinguishable from a dead button. These bounds make the difference
+ * between "installed", "not installed" and "not answering" visible.
+ */
+const PROBE_TIMEOUT_MS = 5_000;
 const CONNECT_TIMEOUT_MS = 15_000;
+
+const NO_EXTENSION_ON_CONNECT =
+  "Freighter no respondió. Comprueba que la extensión está instalada, desbloqueada y que este sitio está permitido en su configuración.";
 
 export const freighterAdapter: WalletAdapter = {
   name: "Freighter",
 
   async isAvailable(): Promise<boolean> {
-    // The extension injects `window.freighter`. The npm package imports fine
-    // without it, so testing only the import reports a wallet that is not
-    // there, which is how "Conectar cartera" ended up enabled in browsers with
-    // no Freighter installed.
-    if (typeof window === "undefined") return false;
-    return typeof (window as { freighter?: unknown }).freighter !== "undefined";
+    const api = await loadFreighter();
+    if (!api) return false;
+    // `window.freighter` is only a shortcut the package itself falls back from:
+    // when it is absent the package still talks over postMessage. Treating the
+    // missing shortcut as "no wallet" rejects installs that work fine.
+    //
+    // So availability is answered by the thing that matters: does the extension
+    // reply to a probe? A `false` reply means installed-but-not-authorised,
+    // which is still an installed extension.
+    if (typeof api.isConnected !== "function") return true;
+    try {
+      await withTimeout(api.isConnected(), PROBE_TIMEOUT_MS, "sonda sin respuesta");
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   async connect(): Promise<string> {
-    if (typeof window === "undefined" || typeof (window as { freighter?: unknown }).freighter === "undefined") {
-      throw new WalletError(
-        "Freighter no está instalada. Instala la extensión desde freighter.app y recarga esta página.",
-      );
-    }
     const api = await loadFreighter();
     if (!api) {
       throw new WalletError("No se pudo cargar el módulo de Freighter. Recarga la página.");
@@ -91,7 +107,7 @@ export const freighterAdapter: WalletAdapter = {
       const key = await withTimeout(
         api.getPublicKey({ sign: true }),
         CONNECT_TIMEOUT_MS,
-        "Freighter no respondió en 15 segundos. Comprueba que la extensión está desbloqueada y que este sitio está permitido.",
+        NO_EXTENSION_ON_CONNECT,
       );
       return requireAddress(key);
     } catch (e) {
@@ -106,13 +122,17 @@ export const freighterAdapter: WalletAdapter = {
   },
 
   async restore(): Promise<string | null> {
-    if (typeof window === "undefined") return null;
-    if (typeof (window as { freighter?: unknown }).freighter === "undefined") return null;
     const api = await loadFreighter();
     if (!api) return null;
     try {
-      if (typeof api.isConnected === "function" && !(await api.isConnected())) {
-        return null;
+      // Absence of an answer means no extension, same as the probe in
+      // isAvailable(); a `false` from isConnected just means no saved session.
+      if (typeof api.isConnected === "function") {
+        try {
+          await withTimeout(api.isConnected(), PROBE_TIMEOUT_MS, "sonda sin respuesta");
+        } catch {
+          return null;
+        }
       }
       const key = await withTimeout(
         api.getPublicKey(),

@@ -50,27 +50,45 @@ beforeEach(() => {
 });
 
 describe("freighterAdapter — availability", () => {
-  it("reports unavailable when the extension did not inject window.freighter", async () => {
-    expect(await freighterAdapter.isAvailable()).toBe(false);
+  it("reports unavailable when the extension never answers a probe", async () => {
+    freighterMocks.isConnected.mockReturnValue(new Promise(() => {}));
+    vi.useFakeTimers();
+    const probe = freighterAdapter.isAvailable();
+    await vi.advanceTimersByTimeAsync(5_500);
+    const available = await probe;
+    vi.useRealTimers();
+    expect(available).toBe(false);
   });
 
-  it("reports available only once the extension is present", async () => {
-    installFakeExtension();
+  it("reports available when the extension answers, even if it answers false", async () => {
+    // `isConnected() === false` means installed but not yet authorised for this
+    // site. That is still an installed extension, and saying otherwise hides a
+    // wallet that works.
+    freighterMocks.isConnected.mockResolvedValue(false);
     expect(await freighterAdapter.isAvailable()).toBe(true);
   });
 
-  // Importing the npm package is not evidence of an installed extension: it
-  // resolves either way. That mistaken check is what made the button live.
-  it("does not infer availability from the module being importable", async () => {
-    await import("@stellar/freighter-api");
+  it("reports available when the build has no isConnected at all", async () => {
+    // Some versions omit it; the other calls still work.
+    expect(await freighterAdapter.isAvailable()).toBe(true);
+  });
+
+  // Regression guard for the fix that broke this: the package treats
+  // window.freighter as a shortcut, not a requirement, so its absence says
+  // nothing about whether the extension is installed.
+  it("does not gate availability on window.freighter being present", async () => {
+    installFakeExtension();
     removeFakeExtension();
-    expect(await freighterAdapter.isAvailable()).toBe(false);
+    freighterMocks.isConnected.mockResolvedValue(true);
+    expect(await freighterAdapter.isAvailable()).toBe(true);
   });
 });
 
 describe("freighterAdapter — connect", () => {
-  it("explains how to install Freighter when it is absent", async () => {
-    await expect(freighterAdapter.connect()).rejects.toThrow(/no está instalada/i);
+  it("connects when the extension answers, without needing window.freighter", async () => {
+    // The exact scenario the previous regression broke: an extension that
+    // works over postMessage and never injects the shortcut object.
+    await expect(freighterAdapter.connect()).resolves.toBe("G" + "A".repeat(55));
   });
 
   it("returns the address the extension reports", async () => {
