@@ -70,8 +70,8 @@ after(() => {
 });
 
 describe("pin-proposal — request validation", () => {
-  it("rejects a non-POST method", async () => {
-    const res = await handler({ ...event(), httpMethod: "GET" });
+  it("rejects a method that is neither GET nor POST", async () => {
+    const res = await handler({ ...event(), httpMethod: "DELETE" });
     assert.equal(res.statusCode, 405);
   });
 
@@ -173,5 +173,65 @@ describe("pin-proposal — upstream", () => {
     });
     const res = await handler(withOwnIp({ body: JSON.stringify({ content: validContent() }) }));
     assert.equal(res.statusCode, 502);
+  });
+});
+
+// The status panel reads this instead of asserting a fixed reason in the UI.
+// It had said "set PINATA_JWT" long after the secret was in place, when the
+// real blocker was the key's scope, so the operator was sent to fix something
+// already done.
+describe("pin-proposal — capability probe (GET)", () => {
+  it("reports the secret as missing, and never calls the provider", async () => {
+    delete process.env.PINATA_JWT;
+    stubFetch(async () => {
+      throw new Error("must not be called");
+    });
+    const res = await handler({ ...event(), httpMethod: "GET" });
+    assert.equal(res.statusCode, 200);
+    assert.equal(bodyOf(res).ready, false);
+    assert.equal(bodyOf(res).configured, false);
+    assert.match(bodyOf(res).reason, /Falta PINATA_JWT/);
+    assert.equal(calls.length, 0);
+  });
+
+  it("reports ready when the provider accepts the key", async () => {
+    process.env.PINATA_JWT = "test-token";
+    stubFetch(async () => ({ ok: true, text: async () => "" }));
+    const res = await handler({ ...event(), httpMethod: "GET" });
+    assert.equal(bodyOf(res).ready, true);
+    assert.equal(bodyOf(res).configured, true);
+    // Read-only: a probe must never pin anything.
+    assert.equal(calls[0][0], "https://api.pinata.cloud/data/testAuthentication");
+  });
+
+  // The failure that actually happened in production.
+  it("distinguishes a configured key that lacks the pinning scope", async () => {
+    process.env.PINATA_JWT = "test-token";
+    stubFetch(async () => ({
+      ok: false,
+      text: async () => '{"error":{"reason":"NO_SCOPES_FOUND"}}',
+    }));
+    const res = await handler({ ...event(), httpMethod: "GET" });
+    assert.equal(bodyOf(res).configured, true);
+    assert.equal(bodyOf(res).ready, false);
+    assert.match(bodyOf(res).reason, /pinFileToIPFS/);
+  });
+
+  it("never echoes the token", async () => {
+    process.env.PINATA_JWT = "test-token";
+    stubFetch(async () => ({ ok: false, text: async () => "nope" }));
+    const res = await handler({ ...event(), httpMethod: "GET" });
+    assert.ok(!res.body.includes("test-token"));
+  });
+
+  it("says the provider is unreachable without blaming the secret", async () => {
+    process.env.PINATA_JWT = "test-token";
+    stubFetch(async () => {
+      throw new Error("ECONNREFUSED");
+    });
+    const res = await handler({ ...event(), httpMethod: "GET" });
+    assert.equal(bodyOf(res).configured, true);
+    assert.equal(bodyOf(res).ready, false);
+    assert.match(bodyOf(res).reason, /no respondió/);
   });
 });

@@ -11,7 +11,55 @@ function response(statusCode, body) {
   };
 }
 
+/**
+ * Reports whether publishing can work, and if not, which of the two very
+ * different reasons applies: no secret at all, or a secret the provider will
+ * not accept. Those look identical from the outside until you read the status
+ * code, and the operator needs to be told which one they are looking at.
+ *
+ * The distinction matters because the fix is different: set the env var, or
+ * give the existing key the `pinFileToIPFS` scope.
+ */
+async function capability() {
+  const token = process.env.PINATA_JWT;
+  if (!token) {
+    return response(200, {
+      ready: false,
+      configured: false,
+      reason: "Falta PINATA_JWT en el entorno de funciones.",
+    });
+  }
+  let upstream;
+  try {
+    upstream = await fetch("https://api.pinata.cloud/data/testAuthentication", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    return response(200, {
+      ready: false,
+      configured: true,
+      reason: "PINATA_JWT está configurada, pero el proveedor IPFS no respondió.",
+    });
+  }
+  if (upstream.ok) {
+    return response(200, { ready: true, configured: true, reason: "Publicación disponible." });
+  }
+  const body = await upstream.text().catch(() => "");
+  // The provider's own wording is more useful than anything invented here.
+  const reason = /NO_SCOPES_FOUND/.test(body)
+    ? "PINATA_JWT está configurada, pero la clave no tiene el permiso pinFileToIPFS. Sin ese permiso el proveedor rechaza la publicación."
+    : "PINATA_JWT está configurada, pero el proveedor rechazó la clave.";
+  return response(200, { ready: false, configured: true, reason });
+}
+
 export async function handler(event) {
+  // A read-only capability report. The status panel used to hardcode
+  // "needs_config: set PINATA_JWT", which stayed on screen even once the secret
+  // was present and the real blocker was the key's scope — telling the operator
+  // to do something already done. This reports what is actually true instead.
+  // It never echoes the token and never pins anything.
+  if (event.httpMethod === "GET") return capability();
+
   if (event.httpMethod !== "POST") return response(405, { error: "Método no permitido." });
 
   const origin = event.headers?.origin;

@@ -14,6 +14,8 @@
 
 import type { Read } from "@brugulacivica/sdk";
 
+import { usePublishCapability } from "../lib/publishCapability.js";
+
 export type DemoDependency = {
   /** What the audience would try to do. */
   capability: string;
@@ -49,6 +51,7 @@ export default function DemoStatus({
   verifiableProposals,
   unverifiableProposals,
 }: Props) {
+  const publishCapability = usePublishCapability();
   const chain: DemoDependency =
     ledger === null
       ? {
@@ -75,12 +78,39 @@ export default function DemoStatus({
         : "No se pudo leer el total de iniciativas o de reportes; esos contadores se muestran como DESCONOCIDO en lugar de cero.",
   };
 
-  const publish: DemoDependency = {
-    capability: "Publicar una iniciativa nueva",
-    state: "needs_config",
-    reason:
-      "La función que fija el contenido en IPFS necesita PINATA_JWT en el entorno de funciones de Netlify. Mientras no esté configurado responde 503 y el formulario no puede completar el paso de contenido.",
-  };
+  // Read from the function rather than asserted here: the secret being set and
+  // the key being allowed to pin are two different failures with two different
+  // fixes, and only the function knows which one it is.
+  const publish: DemoDependency = (() => {
+    const capability = "Publicar una iniciativa nueva";
+    if (publishCapability.status === "loading") {
+      return {
+        capability,
+        state: "needs_config" as const,
+        reason: "Comprobando si el servicio de publicación está disponible…",
+      };
+    }
+    if (publishCapability.status === "unknown") {
+      return {
+        capability,
+        state: "needs_config" as const,
+        reason: publishCapability.reason,
+      };
+    }
+    if (publishCapability.ready) {
+      return {
+        capability,
+        state: "verifiable" as const,
+        reason:
+          "El servicio de publicación responde y acepta el token. Crear una iniciativa escribe el contenido en IPFS y ancla sus hashes en Stellar con una firma de tu cartera.",
+      };
+    }
+    return {
+      capability,
+      state: "needs_config" as const,
+      reason: publishCapability.reason,
+    };
+  })();
 
   const content: DemoDependency =
     verifiableProposals > 0
@@ -145,7 +175,8 @@ export default function DemoStatus({
         <p className="font-code-sm text-code-sm text-outline">
           Con una wallet de testnet con credencial emitida puedes recorrer el
           flujo completo de voto: elegir, firmar, recibir el hash y releer el
-          recuento. La publicación de iniciativas nuevas espera PINATA_JWT.
+          recuento. El estado de la publicación aparece arriba, leído del propio
+          servicio.
         </p>
       </div>
     </section>

@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import DemoStatus from "./DemoStatus.js";
 import type { Read } from "@brugulacivica/sdk";
@@ -13,6 +13,29 @@ const evidence = {
 
 const ok = <T,>(value: T): Read<T> => ({ status: "ok", value, evidence });
 const bad = <T,>(reason = "rpc caído"): Read<T> => ({ status: "unknown", reason, evidence });
+
+/**
+ * The publish line is read from the function, not asserted in the panel.
+ *
+ * It used to hardcode "set PINATA_JWT", and it kept saying that after the secret
+ * was in place, when the real blocker was the key's scope. These tests pin the
+ * three states the probe can report, because each one sends the operator to a
+ * different fix.
+ */
+function stubProbe(body: unknown, ok = true) {
+  return vi.fn(async () => ({ ok, json: async () => body } as Response));
+}
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    stubProbe({ ready: false, configured: false, reason: "Falta PINATA_JWT en el entorno de funciones." }),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function renderPanel(over: Partial<Parameters<typeof DemoStatus>[0]> = {}) {
   const props: Parameters<typeof DemoStatus>[0] = {
@@ -57,11 +80,49 @@ describe("DemoStatus", () => {
     expect(screen.queryByText(/4 iniciativas y 7 reportes/)).toBeNull();
   });
 
-  it("blocks publishing on the missing PINATA_JWT and names it", () => {
+  it("names the missing secret when the function reports it is not configured", async () => {
     renderPanel();
     expect(screen.getByText(/Publicar una iniciativa nueva/)).toBeInTheDocument();
-    expect(screen.getAllByText(/PINATA_JWT/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/responde 503/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/Falta PINATA_JWT/)).toBeInTheDocument());
+    expect(screen.queryByText(/VERIFICABLE.*Publicar/s)).toBeNull();
+  });
+
+  // The case that actually happened: the secret was set, so telling the
+  // operator to set it sent them to fix something already fine.
+  it("names the missing scope when the secret exists but the key cannot pin", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubProbe({
+        ready: false,
+        configured: true,
+        reason: "PINATA_JWT está configurada, pero la clave no tiene el permiso pinFileToIPFS.",
+      }),
+    );
+    renderPanel();
+    await waitFor(() => expect(screen.getByText(/pinFileToIPFS/)).toBeInTheDocument());
+    expect(screen.getByText(/está configurada/)).toBeInTheDocument();
+  });
+
+  it("marks publishing verifiable only when the function says it is ready", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubProbe({ ready: true, configured: true, reason: "Publicación disponible." }),
+    );
+    renderPanel();
+    await waitFor(() =>
+      expect(screen.getByText(/El servicio de publicación responde/)).toBeInTheDocument(),
+    );
+  });
+
+  // An unreadable probe must not be reported as "not configured": that would
+  // send the operator to fix a secret that may well be fine.
+  it("claims nothing about the secret when the probe itself cannot be read", async () => {
+    vi.stubGlobal("fetch", stubProbe({}, false));
+    renderPanel();
+    await waitFor(() =>
+      expect(screen.getByText(/No se pudo consultar el estado del servicio/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Falta PINATA_JWT/)).toBeNull();
   });
 
   // The exact state of the branch today: four records, zero readable.
