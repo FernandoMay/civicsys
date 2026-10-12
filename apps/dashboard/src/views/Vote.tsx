@@ -68,6 +68,9 @@ const COMMITMENT_ATTRIBUTES = "district=00;role=citizen;cohort=commitment-demo";
  */
 const UNVERIFIED_VERIFIER_DIGEST_LABEL = "brujula-civica/commitment_v1/unverified";
 
+/** What the chain says about this wallet on this proposal, read before offering a ballot. */
+type VoterStanding = { eligible: boolean; alreadyVoted: boolean };
+
 type Receipt = {
   at: string;
   txHash: string;
@@ -102,6 +105,15 @@ export default function Vote({
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [tally, setTally] = useState<Read<VerificationResult> | null>(null);
   const [tallyLoading, setTallyLoading] = useState(false);
+  /**
+   * Whether this wallet may and still can vote on the selected proposal.
+   *
+   * Read as soon as the wallet or the proposal changes, so a ballot is not
+   * offered to someone the chain will reject. `submit()` re-reads both facts
+   * before signing regardless, because this read can go stale between render
+   * and submission and the contract is the authority, not this screen.
+   */
+  const [standing, setStanding] = useState<Read<VoterStanding> | null>(null);
 
   const openProposals = useMemo(
     () =>
@@ -138,6 +150,42 @@ export default function Vote({
     }
     void reloadTally(selected);
   }, [selected, reloadTally]);
+
+  // Read this wallet's standing on the selected proposal as soon as either
+  // changes. Offering a ballot to a wallet that cannot use it wastes the
+  // person's time and reads as a bug; the contract would refuse it anyway.
+  useEffect(() => {
+    if (!address || selected === null) {
+      setStanding(null);
+      return;
+    }
+    let live = true;
+    void (async () => {
+      const [eligible, voted] = await Promise.all([
+        reader.isEligible(address),
+        reader.hasVotedPublic(selected, address),
+      ]);
+      if (!live) return;
+      if (eligible.status !== "ok") {
+        // No claim either way: a read failed, so nothing may be asserted about
+        // this wallet. The ballot stays available and submit() decides.
+        setStanding({ status: "unknown", reason: eligible.reason, evidence: eligible.evidence });
+        return;
+      }
+      if (voted.status !== "ok") {
+        setStanding({ status: "unknown", reason: voted.reason, evidence: voted.evidence });
+        return;
+      }
+      setStanding({
+        status: "ok",
+        value: { eligible: eligible.value, alreadyVoted: voted.value },
+        evidence: eligible.evidence,
+      });
+    })();
+    return () => {
+      live = false;
+    };
+  }, [address, selected]);
 
   // If the selected proposal has no readable membership root, return to the
   // public mode automatically instead of leaving an unusable mode selected.
@@ -372,6 +420,42 @@ export default function Vote({
                 </label>
               )}
             </fieldset>
+
+            {/* The chain already knows this wallet's standing, so say it here
+                instead of letting someone fill in a ballot the contract will
+                refuse. An unknown read must NOT block voting: the revalidation
+                inside submit() is the authority, not this screen. */}
+            {standing?.status === "ok" && !standing.value.eligible && (
+              <p
+                className="p-space-sm bg-surface-container-low text-on-surface-variant font-body-sm text-body-sm"
+                role="status"
+              >
+                Esta cartera no tiene credencial activa y elegible en{" "}
+                <a
+                  className="underline"
+                  href={explorerContract("brujula-identity")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  brujula-identity ↗
+                </a>
+                . El voto público está restringido a credenciales emitidas por el
+                administrador.
+              </p>
+            )}
+
+            {standing?.status === "ok" &&
+              standing.value.eligible &&
+              standing.value.alreadyVoted && (
+                <p
+                  className="p-space-sm bg-surface-container-low text-on-surface-variant font-body-sm text-body-sm"
+                  role="status"
+                >
+                  Esta cartera ya emitió su voto en esta iniciativa. El recuento de
+                  abajo lo refleja y el contrato no admite una segunda boleta para la
+                  misma iniciativa y la misma cartera.
+                </p>
+              )}
 
             <fieldset disabled={selected === null || !address}>
               <legend className="font-code-sm text-code-sm text-on-surface uppercase font-semibold mb-space-xs">

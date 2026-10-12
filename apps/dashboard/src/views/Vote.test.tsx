@@ -170,6 +170,51 @@ describe("Vote — no wallet, no ballot", () => {
   });
 });
 
+describe("Vote — the chain's standing is shown before a ballot is offered", () => {
+  // Verified on testnet: a second ballot from the same wallet on the same
+  // proposal fails with Error(Contract, #5) = AlreadyVoted and sends no
+  // transaction. A wallet that already voted must not be handed an enabled
+  // ballot that the contract is going to refuse.
+  it("says so when this wallet already voted on this proposal", async () => {
+    chainReads({ eligible: ok(true), voted: ok(true) });
+    renderVote();
+    await waitFor(() =>
+      expect(screen.getByText(/ya emitió su voto en esta iniciativa/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("says so when the wallet has no eligible credential, and links the contract", async () => {
+    chainReads({ eligible: ok(false) });
+    renderVote();
+    const notice = await screen.findByText(/no tiene credencial activa y elegible/i);
+    expect(notice).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /brujula-identity/i })[0]).toHaveAttribute(
+      "href",
+      "https://stellar.expert/explorer/testnet/contract/CAYXQI2PR3UTEDU2JYJUMTVPB7M3NXM7YH4YJ45ONY264FUBP5ZLJXTS",
+    );
+  });
+
+  it("keeps the ballot available when the standing cannot be read", async () => {
+    // An unreachable RPC is not evidence that anyone is ineligible. Blocking
+    // the ballot on a failed read would turn an outage into a rejection, and
+    // submit() re-reads the chain anyway.
+    chainReads({ eligible: bad("timeout") });
+    renderVote();
+    await waitFor(() => expect(mocks.reader.hasVotedPublic).toHaveBeenCalled());
+    expect(screen.queryByText(/no tiene credencial activa/i)).toBeNull();
+    expect(screen.queryByText(/ya emitió su voto/i)).toBeNull();
+    await choose(userEvent.setup(), /A favor/i);
+    expect(screen.getByRole("button", { name: SEND })).toBeEnabled();
+  });
+
+  it("says nothing about standing before a wallet is connected", () => {
+    chainReads({ eligible: ok(false), voted: ok(true) });
+    renderVote();
+    expect(screen.queryByText(/no tiene credencial activa/i)).toBeNull();
+    expect(screen.queryByText(/ya emitió su voto/i)).toBeNull();
+  });
+});
+
 describe("Vote — preconditions are revalidated against the chain", () => {
   it("refuses to send when the proposal is no longer open", async () => {
     const user = userEvent.setup();
