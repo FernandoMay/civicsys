@@ -39,47 +39,89 @@ function requireAddress(address: string | null | undefined): string {
   return address;
 }
 
+/**
+ * A promise that rejects instead of hanging.
+ *
+ * The Freighter package talks to the extension over window.postMessage and
+ * waits for a reply. With no reply the promise simply never settles, so a click
+ * on "connect" looked like nothing at all: no error, no state change, nothing.
+ * A bound that fails loudly is the only honest behaviour here.
+ */
+async function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new WalletError(message)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Milliseconds Freighter gets to answer before we call it unreachable. */
+const CONNECT_TIMEOUT_MS = 15_000;
+
 export const freighterAdapter: WalletAdapter = {
   name: "Freighter",
 
   async isAvailable(): Promise<boolean> {
-    const api = await loadFreighter();
-    if (!api) return false;
-    // `isConnected` is absent on some builds; treat that as "installed but idle".
-    if (typeof api.isConnected !== "function") return true;
-    return true;
+    // The extension injects `window.freighter`. The npm package imports fine
+    // without it, so testing only the import reports a wallet that is not
+    // there, which is how "Conectar cartera" ended up enabled in browsers with
+    // no Freighter installed.
+    if (typeof window === "undefined") return false;
+    return typeof (window as { freighter?: unknown }).freighter !== "undefined";
   },
 
   async connect(): Promise<string> {
+    if (typeof window === "undefined" || typeof (window as { freighter?: unknown }).freighter === "undefined") {
+      throw new WalletError(
+        "Freighter no está instalada. Instala la extensión desde freighter.app y recarga esta página.",
+      );
+    }
     const api = await loadFreighter();
     if (!api) {
-      throw new WalletError(
-        "Freighter no está instalada. Instala la extensión y recarga la página.",
-      );
+      throw new WalletError("No se pudo cargar el módulo de Freighter. Recarga la página.");
     }
     try {
       // `sign: true` makes Freighter prompt for access when not yet authorised.
-      const key = await api.getPublicKey({ sign: true });
+      const key = await withTimeout(
+        api.getPublicKey({ sign: true }),
+        CONNECT_TIMEOUT_MS,
+        "Freighter no respondió en 15 segundos. Comprueba que la extensión está desbloqueada y que este sitio está permitido.",
+      );
       return requireAddress(key);
     } catch (e) {
-      throw new WalletError(
-        e instanceof Error && e.message
-          ? `Freighter rechazó la conexión: ${e.message}`
-          : "Freighter rechazó la conexión",
-      );
+      throw e instanceof WalletError
+        ? e
+        : new WalletError(
+            e instanceof Error && e.message
+              ? `Freighter rechazó la conexión: ${e.message}`
+              : "Freighter rechazó la conexión",
+          );
     }
   },
 
   async restore(): Promise<string | null> {
+    if (typeof window === "undefined") return null;
+    if (typeof (window as { freighter?: unknown }).freighter === "undefined") return null;
     const api = await loadFreighter();
     if (!api) return null;
     try {
       if (typeof api.isConnected === "function" && !(await api.isConnected())) {
         return null;
       }
-      return await api.getPublicKey();
+      const key = await withTimeout(
+        api.getPublicKey(),
+        10_000,
+        "Freighter no respondió al comprobar la sesión.",
+      );
+      return requireAddress(key);
     } catch {
-      // Not authorised yet — that is a normal state, not an error.
+      // Not authorised yet, or the extension went away. Both are normal states.
       return null;
     }
   },

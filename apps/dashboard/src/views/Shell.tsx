@@ -50,7 +50,7 @@ function Header({
   onNavigate: (route: Route) => void;
   onCheckCredential: () => void;
 }) {
-  const { address, connecting, connect, disconnect } = useWallet();
+  const { address, connecting, connect, disconnect, error: walletError } = useWallet();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest">
@@ -123,6 +123,14 @@ function Header({
             >
               {connecting ? "Conectando…" : "Conectar cartera"}
             </button>
+          )}
+          {/* The connection failure was previously swallowed by the caller's
+              `.catch(() => {})`, so a click with no Freighter installed did
+              nothing visible. Surface it, whatever `available` says. */}
+          {walletError && !address && (
+            <p className="mt-space-xs text-code-sm font-code-sm text-error brujula-break" role="alert">
+              {walletError}
+            </p>
           )}
         </div>
       </div>

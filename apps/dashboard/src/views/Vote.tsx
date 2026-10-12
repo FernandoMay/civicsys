@@ -293,7 +293,7 @@ export default function Vote({
             </div>
           </div>
 
-          {available === false && (
+          {(available === false || walletError) && (
             <p className="p-space-sm bg-surface-container-low font-body-sm text-body-sm text-on-surface-variant" role="status">
               <strong>Cartera no detectada:</strong>{" "}
               {walletError ?? "instala Freighter (u otra compatible) para poder firmar transacciones."}
