@@ -201,9 +201,42 @@ describe("Vote — preconditions are revalidated against the chain", () => {
     await user.click(screen.getByRole("button", { name: SEND }));
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(/no es elegible|no está activa/i),
+      expect(screen.getByRole("alert")).toHaveTextContent(/no tiene una credencial activa y elegible/i),
     );
     expect(mocks.voteClient).not.toHaveBeenCalled();
+  });
+
+  // "no sos elegible" alone gave the user nothing to do. The error now names the
+  // situation, links the identity contract, and shows the wallet that failed.
+  it("offers the identity contract and the wallet when there is no credential", async () => {
+    const user = userEvent.setup();
+    chainReads({ eligible: ok(false) });
+    renderVote();
+    await choose(user, /A favor/i);
+    await user.click(screen.getByRole("button", { name: SEND }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    const link = screen.getByRole("link", { name: /Ver contrato de identidad/i });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://stellar.expert/explorer/testnet/contract/CAYXQI2PR3UTEDU2JYJUMTVPB7M3NXM7YH4YJ45ONY264FUBP5ZLJXTS",
+    );
+    // The wallet that failed is shown, so the operator can be told exactly
+    // which address to issue a credential for.
+    expect(screen.getByRole("alert").textContent).toContain(ADDR);
+  });
+
+  // An eligibility read that fails is a different failure from being ineligible,
+  // and must not offer the "get a credential" path.
+  it("does not offer the credential path when the eligibility read itself failed", async () => {
+    const user = userEvent.setup();
+    chainReads({ eligible: bad("timeout") });
+    renderVote();
+    await choose(user, /A favor/i);
+    await user.click(screen.getByRole("button", { name: SEND }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/no se envió el voto/i));
+    expect(screen.queryByRole("link", { name: /Ver contrato de identidad/i })).toBeNull();
   });
 
   it("refuses to send when eligibility cannot be read", async () => {

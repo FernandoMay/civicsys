@@ -31,6 +31,28 @@ const CHOICES: { value: number; label: string; desc: string }[] = [
   { value: 2, label: "Abstención", desc: "Cuenta para el quórum sin inclinar la decisión." },
 ];
 
+/**
+ * Raised when a connected wallet holds no credential the vote contract accepts.
+ *
+ * The contract gates public ballots on `brujula-identity` eligibility, so this
+ * is a legitimate on-chain state and not a failure of the wallet. The message
+ * names the wallet, points at the record, and says who can fix it, because
+ * "no sos elegible" left the user with nothing to act on.
+ */
+class WalletNotEligibleError extends Error {
+  readonly address: string;
+
+  constructor(address: string) {
+    super(
+      "Esta cartera no tiene una credencial activa y elegible en brujula-identity, " +
+        "y el voto público está restringido a credenciales emitidas por el administrador. " +
+        "Verificá tu credencial o pedí que te emitan una para esta dirección.",
+    );
+    this.name = "WalletNotEligibleError";
+    this.address = address;
+  }
+}
+
 export type TxPhase = "idle" | "signing" | "submitting" | "sent";
 
 type BallotMode = "public" | "commitment";
@@ -77,7 +99,8 @@ export default function Vote({
   const [membershipRoot, setMembershipRoot] = useState<string | null>(null);
   const [rootRead, setRootRead] = useState<Read<string | null> | null>(null);
   const [phase, setPhase] = useState<TxPhase>("idle");
-  const [txError, setTxError] = useState<string | null>(null);
+  /** The rejected error itself, so the panel can act on its type. */
+  const [txError, setTxError] = useState<unknown>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [tally, setTally] = useState<Read<VerificationResult> | null>(null);
   const [tallyLoading, setTallyLoading] = useState(false);
@@ -174,10 +197,14 @@ export default function Vote({
       if (mode === "public") {
         const eligibility = await reader.isEligible(source);
         if (eligibility.status !== "ok") {
-          throw new Error("No se pudo verificar tu elegibilidad en la cadena; no se envió el voto.");
+          throw new Error(
+            "No se pudo verificar tu elegibilidad en la cadena; no se envió el voto. Reintentá en unos segundos.",
+          );
         }
         if (!eligibility.value) {
-          throw new Error("La credencial de esta cartera no está activa o no es elegible para votar.");
+          // Fail-closed, but the message has to say what to do about it: the
+          // wallet is fine, it just has no credential the contract accepts.
+          throw new WalletNotEligibleError(source);
         }
         const alreadyVoted = await reader.hasVotedPublic(selected, source);
         if (alreadyVoted.status !== "ok") {
@@ -257,7 +284,8 @@ export default function Vote({
       setPhase("sent");
       await reloadTally(selected);
     } catch (err) {
-      setTxError(describe(err));
+      // Keep the error itself, not just its text: the panel acts on its type.
+      setTxError(err);
       setPhase("idle");
     }
   };
@@ -425,10 +453,29 @@ export default function Vote({
               </div>
             </div>
 
-            {txError && (
-              <p className="p-space-sm bg-error-container text-on-error-container font-body-sm text-body-sm" role="alert">
-                La transacción no se pudo emitir: {txError}
-              </p>
+            {txError !== null && (
+              <div className="p-space-sm bg-error-container text-on-error-container space-y-space-xs" role="alert">
+                <p className="font-body-sm font-body-sm">
+                  <strong>No se pudo emitir el voto:</strong> {describe(txError)}
+                </p>
+                {/* When the wallet is fine but holds no credential, offer the
+                    two actions that actually resolve it instead of a dead end. */}
+                {txError instanceof WalletNotEligibleError && (
+                  <div className="flex flex-wrap gap-space-sm pt-space-xs">
+                    <a
+                      className="px-space-sm py-1 bg-surface text-on-surface font-code-sm text-code-sm hover:bg-surface-container"
+                      href={explorerContract("brujula-identity")}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Ver contrato de identidad ↗
+                    </a>
+                    <span className="font-code-sm text-code-sm self-center brujula-break">
+                      {txError.address}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
 
             {!address && (
