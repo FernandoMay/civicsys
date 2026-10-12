@@ -18,18 +18,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PROPOSAL_STATUS, sha256Utf8, type Read, type VerificationResult } from "@brugulacivica/sdk";
 
+import { CHOICES, choiceLabel } from "../lib/ballot.js";
+
 import { explorerContract, explorerTx, fetchTally, reader, type ProposalRow } from "../lib/chain.js";
 import { commitmentDisclosure, generateVoterSecret, prepareCommitmentBallot } from "../lib/commitment.js";
 import { voteClient } from "../lib/contracts.js";
 import { describe, useSignTransaction, useWallet } from "../lib/wallet.js";
 import { UNKNOWN } from "../lib/format.js";
 
-/** Ballot options. Index is the on-chain `choice` value; never remapped. */
-const CHOICES: { value: number; label: string; desc: string }[] = [
-  { value: 0, label: "A favor", desc: "Apoyo la iniciativa tal como está registrada." },
-  { value: 1, label: "En contra", desc: "Rechazo la iniciativa tal como está registrada." },
-  { value: 2, label: "Abstención", desc: "Cuenta para el quórum sin inclinar la decisión." },
-];
+// The ballot names live in lib/ballot so the tally breakdown cannot drift away
+// from what a voter was offered.
 
 /**
  * Raised when a connected wallet holds no credential the vote contract accepts.
@@ -695,7 +693,7 @@ function TallyPanel({
                     key={choice}
                     className="bg-primary h-full"
                     style={{ width: `${pct(n, t.total)}%` }}
-                    title={`Opción ${choice}: ${n.toString()}`}
+                    title={`${choiceLabel(choice)}: ${n.toString()}`}
                   />
                 ))}
               </div>
@@ -704,7 +702,7 @@ function TallyPanel({
                   <div key={choice} className="p-space-xs bg-surface-container-low">
                     <span className="font-code-sm text-code-sm text-primary block font-semibold">{pct(n, t.total)}%</span>
                     <span className="text-on-surface-variant font-body-sm text-body-sm">
-                      Opción {choice} ({n.toString()})
+                      {choiceLabel(choice)} ({n.toString()})
                     </span>
                   </div>
                 ))}

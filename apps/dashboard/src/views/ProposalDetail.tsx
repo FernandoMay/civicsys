@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import ProposalContent from "./ProposalContent.js";
 
 import { PROPOSAL_STATUS, PROPOSAL_STATUS_LABEL } from "@brugulacivica/sdk";
+import { choiceLabel } from "../lib/ballot.js";
 import type { ProposalRow, ReportEntry } from "../lib/chain.js";
 import { explorerContract, ipfsLink } from "../lib/chain.js";
 import { dateOrUnknown, shortAddress, shortHash, UNKNOWN } from "../lib/format.js";
@@ -247,7 +248,7 @@ export default function ProposalDetail({
                         key={c.choice}
                         className="bg-primary h-full"
                         style={{ width: `${c.pct}%` }}
-                        title={`Opción ${c.choice}: ${c.n.toString()}`}
+                        title={`${choiceLabel(c.choice)}: ${c.n.toString()}`}
                       />
                     ))}
                   </div>
@@ -258,7 +259,7 @@ export default function ProposalDetail({
                           {c.pct}%
                         </span>
                         <span className="text-on-surface-variant font-body-sm text-body-sm">
-                          Opción {c.choice} ({c.n.toString()})
+                          {choiceLabel(c.choice)} ({c.n.toString()})
                         </span>
                       </div>
                     ))}
