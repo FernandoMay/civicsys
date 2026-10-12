@@ -16,9 +16,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { PROPOSAL_STATUS, type Read, type VerificationResult } from "@brugulacivica/sdk";
+import { PROPOSAL_STATUS, sha256Utf8, type Read, type VerificationResult } from "@brugulacivica/sdk";
 
-import { fetchTally, reader, type ProposalRow } from "../lib/chain.js";
+import { explorerContract, explorerTx, fetchTally, reader, type ProposalRow } from "../lib/chain.js";
 import { commitmentDisclosure, generateVoterSecret, prepareCommitmentBallot } from "../lib/commitment.js";
 import { voteClient } from "../lib/contracts.js";
 import { describe, useSignTransaction, useWallet } from "../lib/wallet.js";
@@ -37,6 +37,16 @@ type BallotMode = "public" | "commitment";
 
 const COMMITMENT_DOMAIN = "brujula-civica/testnet/roster";
 const COMMITMENT_ATTRIBUTES = "district=00;role=citizen;cohort=commitment-demo";
+
+/**
+ * Digest written to `verifier_digest` while no verifier contract exists.
+ *
+ * The contract accepts the field but never checks it, so it carries no proof
+ * either way. Writing the nullifier there would put a misleading value into a
+ * permanent on-chain event, so the field instead carries an explicit
+ * "unverified" digest that says the same thing the UI says.
+ */
+const UNVERIFIED_VERIFIER_DIGEST_LABEL = "brujula-civica/commitment_v1/unverified";
 
 type Receipt = {
   at: string;
@@ -86,6 +96,10 @@ export default function Vote({
       setTally(await fetchTally(id));
       // A commitment ballot can only be built against a published root, so the
       // mode switch depends on this read being fresh.
+      // Clear stale state immediately: never keep a previous proposal's root
+      // while the new proposal's membership state is still being read.
+      setMembershipRoot(null);
+      setRootRead(null);
       const root = await reader.membershipRoot(id);
       setRootRead(root);
       setMembershipRoot(root.status === "ok" ? root.value : null);
@@ -97,10 +111,18 @@ export default function Vote({
   useEffect(() => {
     if (selected === null) {
       setTally(null);
+      setMembershipRoot(null);
+      setRootRead(null);
       return;
     }
     void reloadTally(selected);
   }, [selected, reloadTally]);
+
+  // If the selected proposal has no readable membership root, return to the
+  // public mode automatically instead of leaving an unusable mode selected.
+  useEffect(() => {
+    if (mode === "commitment" && membershipRoot === null) setMode("public");
+  }, [mode, membershipRoot]);
 
   // Default the selector to the first genuinely open proposal, or to whatever the
   // caller picked. Never to a hardcoded id.
@@ -138,6 +160,34 @@ export default function Vote({
     setPhase("signing");
     try {
       const source = address;
+
+      // Revalidate the live contract state immediately before asking for a
+      // signature. The page's proposal list may be stale after the window closes.
+      const liveStatus = await reader.proposalStatus(selected);
+      if (liveStatus.status !== "ok") {
+        throw new Error("No se pudo verificar el estado actual de la iniciativa; no se envió el voto.");
+      }
+      if (liveStatus.value !== PROPOSAL_STATUS.OPEN) {
+        throw new Error("La ventana de votación ya no está abierta en la cadena.");
+      }
+
+      if (mode === "public") {
+        const eligibility = await reader.isEligible(source);
+        if (eligibility.status !== "ok") {
+          throw new Error("No se pudo verificar tu elegibilidad en la cadena; no se envió el voto.");
+        }
+        if (!eligibility.value) {
+          throw new Error("La credencial de esta cartera no está activa o no es elegible para votar.");
+        }
+        const alreadyVoted = await reader.hasVotedPublic(selected, source);
+        if (alreadyVoted.status !== "ok") {
+          throw new Error("No se pudo comprobar si esta cartera ya votó; no se envió una segunda boleta.");
+        }
+        if (alreadyVoted.value) {
+          throw new Error("Esta cartera ya emitió un voto público para esta iniciativa.");
+        }
+      }
+
       const client = await voteClient(source, signTransaction);
 
       let commitment: string | null = null;
@@ -163,6 +213,7 @@ export default function Vote({
         }
         commitment = prepared.commitment;
         nullifier = prepared.nullifier;
+        const unverifiedVerifierDigest = await sha256Utf8(UNVERIFIED_VERIFIER_DIGEST_LABEL);
 
         setPhase("submitting");
         tx = await client.cast_commitment({
@@ -172,8 +223,10 @@ export default function Vote({
           commitment: prepared.commitment,
           membership_root: prepared.membershipRoot,
           // No verifier contract exists (RFC §5, phase 4b), so this field
-          // carries no proof. Downstream it is reported UNVERIFIED_COMMITMENT.
-          verifier_digest: prepared.nullifier,
+          // carries no proof. It is left as an explicit "unverified" digest
+          // rather than a reused value, so the published event does not claim
+          // a verifier that is not there. Reported UNVERIFIED_COMMITMENT.
+          verifier_digest: unverifiedVerifierDigest,
         });
       } else {
         setPhase("submitting");
@@ -296,11 +349,12 @@ export default function Vote({
                   checked={mode === "commitment"}
                   onChange={() => setMode("commitment")}
                   label="Por compromiso (commitment_v1)"
+                  disabled={membershipRoot === null}
                   desc={
                     membershipRoot === null
                       ? rootRead?.status === "unknown"
-                        ? "No se pudo leer la raíz de membresía de esta propuesta."
-                        : "Ningún administrador publicó una raíz de membresía: el contrato rechazaría la boleta."
+                        ? "No se pudo leer la raíz de membresía de esta propuesta. Modo bloqueado hasta confirmar una raíz."
+                        : "Ningún administrador publicó una raíz de membresía: modo bloqueado porque el contrato rechazaría la boleta."
                       : `Raíz publicada en cadena: ${membershipRoot.slice(0, 12)}… El recuento se indexa por nullificador, no por tu dirección.`
                   }
                 />
@@ -405,6 +459,29 @@ export default function Vote({
                   </>
                 )}
               </div>
+              {/* The receipt is only worth what the holder can check. Link the
+                  transaction and the tally contract directly, so the vote can be
+                  re-read from the explorer instead of taken on trust. */}
+              <div className="flex flex-wrap gap-space-sm mt-space-sm">
+                {receipt.txHash && (
+                  <a
+                    className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                    href={explorerTx(receipt.txHash)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver transacción en el explorador ↗
+                  </a>
+                )}
+                <a
+                  className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                  href={explorerContract("brujula-vote")}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver contrato de escrutinio ↗
+                </a>
+              </div>
               <button type="button" className="mt-2 px-space-md py-space-sm bg-surface-container text-on-surface font-body-sm font-semibold" onClick={reset}>
                 Emitir otro voto
               </button>
@@ -438,6 +515,7 @@ function ModeOption({
   onChange,
   label,
   desc,
+  disabled = false,
 }: {
   name: string;
   value: string;
@@ -445,10 +523,13 @@ function ModeOption({
   onChange: () => void;
   label: string;
   desc: string;
+  disabled?: boolean;
 }) {
   return (
     <label
-      className={`cursor-pointer block transition-all p-space-md ${
+      className={`block transition-all p-space-md ${
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+      } ${
         checked ? "bg-surface-container-highest" : "bg-surface-container-low hover:bg-surface-container"
       }`}
     >
@@ -459,7 +540,8 @@ function ModeOption({
           value={value}
           checked={checked}
           onChange={onChange}
-          className="mt-1 w-4 h-4 accent-primary cursor-pointer"
+          disabled={disabled}
+          className="mt-1 w-4 h-4 accent-primary cursor-pointer disabled:cursor-not-allowed"
         />
         <div className="flex flex-col">
           <span className="font-body-md text-body-md font-semibold text-on-surface">{label}</span>
@@ -490,19 +572,31 @@ function TallyPanel({
 
   return (
     <div className="bg-surface-container-lowest p-space-lg space-y-space-md">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-space-sm">
         <div className="flex items-center gap-space-xs">
           <span className="material-symbols-outlined text-outline text-[20px]" aria-hidden="true">analytics</span>
           <h3 className="font-headline-md text-headline-md text-on-surface">Monitoreo del Escrutinio</h3>
         </div>
-        <button
-          type="button"
-          onClick={onReload}
-          disabled={selected === null}
-          className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm disabled:opacity-50"
-        >
-          {loading ? "Leyendo…" : "Releer recuento"}
-        </button>
+        <div className="flex items-center gap-space-sm">
+          {/* The tally is only persuasive if the reader can re-read it from the
+              contract, so the link sits next to the number itself. */}
+          <a
+            className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm hover:bg-surface-container"
+            href={explorerContract("brujula-vote")}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver recuento en el explorador ↗
+          </a>
+          <button
+            type="button"
+            onClick={onReload}
+            disabled={selected === null}
+            className="px-space-sm py-1 bg-surface-container-high text-on-surface font-code-sm text-code-sm disabled:opacity-50"
+          >
+            {loading ? "Leyendo…" : "Releer recuento"}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-space-xs">
@@ -523,7 +617,7 @@ function TallyPanel({
         {t && t.total > 0n ? (
           <>
             <div className="w-full h-3 bg-surface-container overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-700" style={{ width: pct(t.public_votes, t.total) }} />
+              <div className="h-full bg-primary transition-all duration-700" style={{ width: `${pct(t.public_votes, t.total)}%` }} />
             </div>
             <div className="flex justify-between font-code-sm text-code-sm text-outline">
               <span>PÚBLICOS: {t.public_votes.toString()}</span>
@@ -536,7 +630,7 @@ function TallyPanel({
                   <div
                     key={choice}
                     className="bg-primary h-full"
-                    style={{ width: pct(n, t.total) }}
+                    style={{ width: `${pct(n, t.total)}%` }}
                     title={`Opción ${choice}: ${n.toString()}`}
                   />
                 ))}
@@ -591,7 +685,19 @@ function TallyPanel({
   );
 }
 
-function pct(part: bigint, total: bigint): string {
-  if (total === 0n) return "0%";
-  return `${(Number((part * 10000n) / total) / 100).toFixed(1)}%`;
+/**
+ * Numeric percentage only, without the unit, truncated toward zero.
+ *
+ * Callers append the CSS unit for widths and the label suffix for text, so
+ * returning '%' here produced the visible bug "100.0%%".
+ *
+ * Truncation is deliberate, not laziness. Rounding made 9999/10000 render as
+ * "100.0%", i.e. a unanimous tally from a non-unanimous one. A platform whose
+ * whole claim is "we never invent a result" must not overstate support, so the
+ * value is always rounded DOWN and can only understate, never overstate.
+ */
+export function pct(part: bigint, total: bigint): string {
+  if (total === 0n) return "0.0";
+  const tenths = (part * 1000n) / total; // tenths of a percent, truncated
+  return `${tenths / 10n}.${tenths % 10n}`;
 }

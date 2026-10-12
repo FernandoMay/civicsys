@@ -11,7 +11,9 @@ import { useMemo, useState } from "react";
 
 import { PROPOSAL_STATUS, PROPOSAL_STATUS_LABEL, type Read } from "@brugulacivica/sdk";
 import type { ProposalRow } from "../lib/chain.js";
+import { explorerContract, ipfsLink } from "../lib/chain.js";
 import { dateOrUnknown, reasonOf, shortAddress, shortHash, UNKNOWN } from "../lib/format.js";
+import ProposalComposer from "./ProposalComposer.js";
 
 type Filter = "todas" | "abiertas" | "cerradas";
 
@@ -26,11 +28,13 @@ export default function Proposals({
   nextId,
   loading,
   onOpen,
+  onCreated = () => {},
 }: {
   rows: ProposalRow[];
   nextId: Read<bigint>;
   loading: boolean;
   onOpen: (proposalId: bigint) => void;
+  onCreated?: () => Promise<void> | void;
 }) {
   const [filter, setFilter] = useState<Filter>("todas");
 
@@ -48,6 +52,7 @@ export default function Proposals({
   return (
     <section className="py-space-xl" id="proposals">
       <div className="space-y-space-lg">
+        <ProposalComposer onCreated={onCreated} />
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-sm pb-space-sm">
           <div className="space-y-space-xs">
             <span className="font-code-sm text-code-sm text-primary uppercase font-bold tracking-wider">
@@ -172,15 +177,20 @@ function ProposalCard({ row, onOpen }: { row: ProposalRow; onOpen: (id: bigint) 
               <div className="font-code-sm text-code-sm text-outline">
                 PROPONENTE <span className="text-on-surface">{shortAddress(proposal.value.proposer)}</span>
               </div>
-              <h3 className="font-headline-md text-headline-md text-on-surface font-bold leading-snug" title={proposal.value.title_hash}>
-                Título (hash): {shortHash(proposal.value.title_hash)}
+              {/* The title is NOT rendered: the chain stores only its hash, and
+                  every deployed proposal anchors a CID that does not resolve to
+                  proposal-content@1 JSON. Showing the hash as a title would be
+                  inventing one, so it is labelled as the reference it is. */}
+              <h3 className="font-headline-md text-headline-md text-on-surface font-bold leading-snug">
+                Iniciativa #{row.id.toString()}
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                El texto de la iniciativa no vive en la cadena. Se direcciona
-                por su CID y se ancla por hash.
+                El texto no vive en la cadena: se direcciona por CID y se ancla
+                por hash. Abajo puedes comprobar ambos por tu cuenta.
               </p>
             </div>
             <div className="bg-surface-container-low p-space-sm space-y-space-xs">
+              <SpecRow label="HASH DEL TÍTULO" value={shortHash(proposal.value.title_hash)} mono />
               <SpecRow label="CID DE CONTENIDO" value={proposal.value.content_cid || UNKNOWN} mono />
               <SpecRow label="EVIDENCIA (ROOT)" value={shortHash(proposal.value.evidence_root)} mono />
               <SpecRow label="EVIDENCIAS ADJUNTAS" value={proposal.value.evidence.length.toString()} />
@@ -188,6 +198,26 @@ function ProposalCard({ row, onOpen }: { row: ProposalRow; onOpen: (id: bigint) 
                 label="VENTANA"
                 value={`${dateOrUnknown(proposal.value.opens_at)} → ${dateOrUnknown(proposal.value.closes_at)}`}
               />
+            </div>
+            <div className="flex flex-wrap gap-space-sm">
+              <a
+                className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                href={explorerContract("brujula-proposal")}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ver registro en el explorador ↗
+              </a>
+              {proposal.value.content_cid && (
+                <a
+                  className="px-space-sm py-1 bg-surface-container text-on-surface font-code-sm text-code-sm hover:bg-surface-container-highest"
+                  href={ipfsLink(proposal.value.content_cid)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver objeto IPFS ↗
+                </a>
+              )}
             </div>
           </div>
         )}

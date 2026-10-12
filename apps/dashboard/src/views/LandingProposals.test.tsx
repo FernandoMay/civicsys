@@ -13,6 +13,7 @@ import Landing from "./Landing.js";
 import Proposals from "./Proposals.js";
 import type { ProposalRow, PublicStats } from "../lib/chain.js";
 import type { Evidence, Read } from "@brugulacivica/sdk";
+import { WalletProvider, type WalletAdapter } from "../lib/wallet.js";
 
 const evidence: Evidence = {
   contractId: "CABC",
@@ -33,6 +34,34 @@ function stats(over: Partial<PublicStats> = {}): PublicStats {
 }
 
 const NET = { network: "testnet" } as const;
+
+/** A wallet that is simply absent: no extension, no address, no signer. */
+const absentAdapter: WalletAdapter = {
+  name: "test-absent",
+  isAvailable: async () => false,
+  connect: async () => {
+    throw new Error("sin cartera en pruebas");
+  },
+  restore: async () => null,
+  disconnect: async () => {},
+  signTransaction: async () => {
+    throw new Error("sin cartera en pruebas");
+  },
+};
+
+/**
+ * `Proposals` renders `ProposalComposer`, which reads the wallet context.
+ * `main.tsx` mounts `App` inside `<WalletProvider>`, so the test must mount the
+ * view the same way — otherwise the suite pins a composition that production
+ * never uses, and any view that gains a wallet dependency breaks it.
+ */
+function renderProposals(props: Omit<Parameters<typeof Proposals>[0], "children">) {
+  return render(
+    <WalletProvider adapter={absentAdapter}>
+      <Proposals {...props} />
+    </WalletProvider>,
+  );
+}
 
 describe("Landing", () => {
   it("shows chain-derived counts", () => {
@@ -146,69 +175,91 @@ describe("Proposals — fail-closed status", () => {
   it("does NOT show a known label when the status read failed", () => {
     // Regression guard: the old code returned STATUS_BADGE[0] ("Programada")
     // for an unknown status, i.e. a fabricated default.
-    render(
-      <Proposals
-        rows={[row({ status: bad() })]}
-        nextId={ok(2n)}
-        loading={false}
-        onOpen={() => {}}
-      />,
-    );
+    renderProposals({
+      rows: [row({ status: bad() })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
     expect(screen.getByText(/DESCONOCIDO/)).toBeInTheDocument();
     expect(screen.queryByText(/PROGRAMADA/)).toBeNull();
   });
 
   it("renders the real on-chain id, not an invented CIV-2025 label", () => {
-    render(
-      <Proposals
-        rows={[row({ id: 1n, proposal: ok(proposal()) })]}
-        nextId={ok(2n)}
-        loading={false}
-        onOpen={() => {}}
-      />,
-    );
+    renderProposals({
+      rows: [row({ id: 1n, proposal: ok(proposal()) })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
     expect(screen.getByText("ID #1")).toBeInTheDocument();
     expect(screen.queryByText(/CIV-2025/)).toBeNull();
   });
 
-  it("renders DESCONOCIDO when the proposal record itself is unreadable", () => {
-    render(
-      <Proposals
-        rows={[row({ proposal: bad("nodo caído") })]}
-        nextId={ok(2n)}
-        loading={false}
-        onOpen={() => {}}
-      />,
+  // The card carries no title because the chain has none. What it must carry
+  // instead is the means to check it: the on-chain record and the CID object.
+  it("offers the explorer record and the IPFS object so the card is checkable", () => {
+    renderProposals({
+      rows: [row({ id: 1n, proposal: ok(proposal()) })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
+    const record = screen.getByRole("link", { name: /Ver registro en el explorador/i });
+    expect(record).toHaveAttribute(
+      "href",
+      "https://stellar.expert/explorer/testnet/contract/CC5M2DNOAOG4J3IT3XZPXZXLKBZRABTTIY5XJPDNYBUEAJE5SEZRDHAI",
     );
+    const object = screen.getByRole("link", { name: /Ver objeto IPFS/i });
+    expect(object).toHaveAttribute(
+      "href",
+      `https://gateway.pinata.cloud/ipfs/${proposal().content_cid}`,
+    );
+  });
+
+  it("never renders a hash as if it were the proposal title", () => {
+    renderProposals({
+      rows: [row({ id: 1n, proposal: ok(proposal()) })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
+    // The old card read "Título (hash): a1b2c3…", which presented a digest as a
+    // heading. The hash is still shown, but labelled as the reference it is.
+    expect(screen.queryByText(/^Título \(hash\)/)).toBeNull();
+    expect(screen.getByText(/HASH DEL TÍTULO/)).toBeInTheDocument();
+  });
+
+  it("renders DESCONOCIDO when the proposal record itself is unreadable", () => {
+    renderProposals({
+      rows: [row({ proposal: bad("nodo caído") })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
     expect(screen.getByText(/SIN LECTURA/)).toBeInTheDocument();
     expect(screen.getByText(/nodo caído/)).toBeInTheDocument();
   });
 
   it("says the chain has no such proposal, rather than rendering nothing", () => {
-    render(
-      <Proposals
-        rows={[row({ proposal: ok(null) })]}
-        nextId={ok(2n)}
-        loading={false}
-        onOpen={() => {}}
-      />,
-    );
+    renderProposals({
+      rows: [row({ proposal: ok(null) })],
+      nextId: ok(2n),
+      loading: false,
+      onOpen: () => {},
+    });
     expect(screen.getByText(/NO EXISTE/)).toBeInTheDocument();
   });
 
   it("disables voting when the proposal is not open", () => {
-    render(
-      <Proposals rows={[row({ status: ok(2) })]} nextId={ok(2n)} loading={false} onOpen={() => {}} />,
-    );
+    renderProposals({ rows: [row({ status: ok(2) })], nextId: ok(2n), loading: false, onOpen: () => {} });
     expect(screen.getByRole("button", { name: /Inspeccionar en cadena/i })).toBeDisabled();
   });
 
   it("enables voting and forwards the real id when open", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
-    render(
-      <Proposals rows={[row({ status: ok(1) })]} nextId={ok(2n)} loading={false} onOpen={onOpen} />,
-    );
+    renderProposals({ rows: [row({ status: ok(1) })], nextId: ok(2n), loading: false, onOpen });
     const btn = screen.getByRole("button", { name: /Votar en esta iniciativa/i });
     expect(btn).toBeEnabled();
     await user.click(btn);
@@ -216,25 +267,21 @@ describe("Proposals — fail-closed status", () => {
   });
 
   it("says why it cannot show proposals when next_id is unreadable", () => {
-    render(
-      <Proposals rows={[]} nextId={bad("nodo sin respuesta")} loading={false} onOpen={() => {}} />,
-    );
+    renderProposals({ rows: [], nextId: bad("nodo sin respuesta"), loading: false, onOpen: () => {} });
     expect(screen.getAllByText(/nodo sin respuesta/).length).toBeGreaterThan(0);
   });
 
   it("filters by open/closed using real statuses", async () => {
     const user = userEvent.setup();
-    render(
-      <Proposals
-        rows={[
-          row({ id: 1n, status: ok(1), proposal: ok(proposal({ id: 1n })) }),
-          row({ id: 2n, status: ok(2), proposal: ok(proposal({ id: 2n })) }),
-        ]}
-        nextId={ok(3n)}
-        loading={false}
-        onOpen={() => {}}
-      />,
-    );
+    renderProposals({
+      rows: [
+        row({ id: 1n, status: ok(1), proposal: ok(proposal({ id: 1n })) }),
+        row({ id: 2n, status: ok(2), proposal: ok(proposal({ id: 2n })) }),
+      ],
+      nextId: ok(3n),
+      loading: false,
+      onOpen: () => {},
+    });
     expect(screen.getByText("ID #1")).toBeInTheDocument();
     expect(screen.getByText("ID #2")).toBeInTheDocument();
 

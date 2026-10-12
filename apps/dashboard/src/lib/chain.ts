@@ -42,6 +42,37 @@ export const RPC_URL: string =
 export const reader = new BrujulaReader(deployment, RPC_URL);
 
 /**
+ * Verifiable links.
+ *
+ * The dashboard's whole claim is "check it yourself", so every screen that
+ * shows a chain object or an off-chain CID offers the link to re-read it. These
+ * builders live here so the URL shape is defined once and a typo cannot send a
+ * reader to a 404 while the UI claims the record exists.
+ */
+export const EXPLORER_BASE = `https://stellar.expert/explorer/${deployment.network}`;
+
+/** A public IPFS gateway, used to fetch whatever a CID points at. */
+export const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
+
+export function explorerTx(hash: string): string {
+  return `${EXPLORER_BASE}/tx/${hash}`;
+}
+
+export function explorerContract(contractName: "brujula-proposal" | "brujula-vote" | "brujula-identity" | "brujula-accountability"): string {
+  const c = deployment.contracts[contractName];
+  if (!c) return EXPLORER_BASE;
+  return `${EXPLORER_BASE}/contract/${c.contract_id}`;
+}
+
+export function explorerContractById(contractId: string): string {
+  return `${EXPLORER_BASE}/contract/${contractId}`;
+}
+
+export function ipfsLink(cid: string): string {
+  return `${IPFS_GATEWAY}${encodeURIComponent(cid)}`;
+}
+
+/**
  * The live ledger sequence, for the header ticker.
  *
  * Returns null when the RPC cannot be reached — the UI then shows
