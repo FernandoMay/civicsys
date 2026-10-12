@@ -97,13 +97,19 @@ export default function DemoStatus({
         reason: publishCapability.reason,
       };
     }
-    if (publishCapability.ready) {
+    // `ready === null` means the service itself could not tell. Showing that as
+    // VERIFICABLE would be a claim nobody verified; showing it as blocked would
+    // be a claim nobody tested. It is reported as exactly what it is.
+    if (publishCapability.ready === true) {
       return {
         capability,
         state: "verifiable" as const,
         reason:
           "El servicio de publicación responde y acepta el token. Crear una iniciativa escribe el contenido en IPFS y ancla sus hashes en Stellar con una firma de tu cartera.",
       };
+    }
+    if (publishCapability.ready === null) {
+      return { capability, state: "needs_config" as const, reason: publishCapability.reason };
     }
     return {
       capability,

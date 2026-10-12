@@ -194,12 +194,16 @@ describe("pin-proposal — capability probe (GET)", () => {
     assert.equal(calls.length, 0);
   });
 
-  it("reports ready when the provider accepts the key", async () => {
+  // The measured failure: a token with no scopes passes authentication and is
+  // refused at upload. Turning that into ready:true put a false VERIFICABLE on
+  // the screen, so the probe reports what it actually knows.
+  it("does not claim publishing works when only authentication was proven", async () => {
     process.env.PINATA_JWT = "test-token";
     stubFetch(async () => ({ ok: true, text: async () => "" }));
     const res = await handler({ ...event(), httpMethod: "GET" });
-    assert.equal(bodyOf(res).ready, true);
+    assert.equal(bodyOf(res).ready, null);
     assert.equal(bodyOf(res).configured, true);
+    assert.match(bodyOf(res).reason, /pinFileToIPFS/);
     // Read-only: a probe must never pin anything.
     assert.equal(calls[0][0], "https://api.pinata.cloud/data/testAuthentication");
   });

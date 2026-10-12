@@ -14,9 +14,14 @@ import { useEffect, useState } from "react";
 export type PublishCapability =
   | { status: "loading" }
   | { status: "unknown"; reason: string }
-  | { status: "ok"; ready: boolean; configured: boolean; reason: string };
+  /**
+   * `ready` is null when the service could not determine whether publishing
+   * works. That is a real state, not an absence of one: a token can be valid
+   * and still carry no permission to pin, and only a write reveals that.
+   */
+  | { status: "ok"; ready: boolean | null; configured: boolean; reason: string };
 
-type ProbeResponse = { ready?: boolean; configured?: boolean; reason?: string };
+type ProbeResponse = { ready?: boolean | null; configured?: boolean; reason?: string };
 
 export function usePublishCapability(): PublishCapability {
   const [state, setState] = useState<PublishCapability>({ status: "loading" });
@@ -33,7 +38,7 @@ export function usePublishCapability(): PublishCapability {
         });
         const body = (await res.json().catch(() => null)) as ProbeResponse | null;
         if (!live) return;
-        if (!res.ok || !body || typeof body.ready !== "boolean") {
+        if (!res.ok || !body || typeof body.ready !== "boolean" && body.ready !== null) {
           setState({
             status: "unknown",
             reason: "No se pudo consultar el estado del servicio de publicación.",

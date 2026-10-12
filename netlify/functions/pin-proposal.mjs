@@ -12,13 +12,19 @@ function response(statusCode, body) {
 }
 
 /**
- * Reports whether publishing can work, and if not, which of the two very
- * different reasons applies: no secret at all, or a secret the provider will
- * not accept. Those look identical from the outside until you read the status
- * code, and the operator needs to be told which one they are looking at.
+ * Reports what can be known about publishing without publishing anything.
  *
- * The distinction matters because the fix is different: set the env var, or
- * give the existing key the `pinFileToIPFS` scope.
+ * `ready: null` is the honest answer for the common case, and it is not a
+ * hedge. Pinata's `testAuthentication` answers one question — is this token a
+ * real, active one — and not the question that matters, which is whether it
+ * carries the `pinFileToIPFS` permission. A token with no scopes at all passes
+ * authentication and is refused at upload time with `NO_SCOPES_FOUND`.
+ *
+ * That was measured in production: the probe answered 200 while the real upload
+ * was rejected. So a probe that turned "the token is real" into "publishing
+ * works" would put a false VERIFICABLE on the screen, which is the one thing
+ * this panel must never do. Determining the permission needs a write, and this
+ * probe does not write.
  */
 async function capability() {
   const token = process.env.PINATA_JWT;
@@ -41,15 +47,26 @@ async function capability() {
       reason: "PINATA_JWT está configurada, pero el proveedor IPFS no respondió.",
     });
   }
-  if (upstream.ok) {
-    return response(200, { ready: true, configured: true, reason: "Publicación disponible." });
+  if (!upstream.ok) {
+    const body = await upstream.text().catch(() => "");
+    // If the provider ever does refuse the probe for lack of scopes, name the
+    // permission: "the key was rejected" leaves the operator guessing.
+    return response(200, {
+      ready: false,
+      configured: true,
+      reason: /NO_SCOPES_FOUND/.test(body)
+        ? "PINATA_JWT está configurada, pero la clave no tiene el permiso pinFileToIPFS."
+        : "PINATA_JWT está configurada, pero el proveedor rechazó la clave.",
+    });
   }
-  const body = await upstream.text().catch(() => "");
-  // The provider's own wording is more useful than anything invented here.
-  const reason = /NO_SCOPES_FOUND/.test(body)
-    ? "PINATA_JWT está configurada, pero la clave no tiene el permiso pinFileToIPFS. Sin ese permiso el proveedor rechaza la publicación."
-    : "PINATA_JWT está configurada, pero el proveedor rechazó la clave.";
-  return response(200, { ready: false, configured: true, reason });
+  // The token is real. Whether it may pin is a different question, and it has no
+  // read-only answer.
+  return response(200, {
+    ready: null,
+    configured: true,
+    reason:
+      "PINATA_JWT está configurada y el proveedor la reconoce. Si la clave no tiene el permiso pinFileToIPFS la publicación será rechazada; eso solo se comprueba al publicar, no con una lectura.",
+  });
 }
 
 export async function handler(event) {
