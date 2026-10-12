@@ -293,10 +293,27 @@ export default function Vote({
             </div>
           </div>
 
-          {(available === false || walletError) && (
+          {walletError ? (
+            <p className="p-space-sm bg-error-container text-on-error-container font-body-sm text-body-sm" role="alert">
+              <strong>No se pudo conectar la cartera:</strong> {walletError}
+            </p>
+          ) : available === false ? (
+            <div className="p-space-sm bg-surface-container-low space-y-space-xs">
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                <strong>No se detectó ninguna cartera.</strong> Instala Freighter desde{" "}
+                <a className="text-primary underline" href="https://freighter.app" target="_blank" rel="noreferrer">
+                  freighter.app ↗
+                </a>{" "}
+                y recarga esta página.
+              </p>
+              <p className="font-code-sm text-code-sm text-outline">
+                Si ya la tienes instalada: ábrela, desbloquéala con tu contraseña y comprueba que este sitio
+                aparece en su lista de sitios permitidos.
+              </p>
+            </div>
+          ) : (
             <p className="p-space-sm bg-surface-container-low font-body-sm text-body-sm text-on-surface-variant" role="status">
-              <strong>Cartera no detectada:</strong>{" "}
-              {walletError ?? "instala Freighter (u otra compatible) para poder firmar transacciones."}
+              Sin firma no hay voto: la transacción la paga y la autoriza tu cartera.
             </p>
           )}
 
