@@ -169,6 +169,16 @@ Prueba en vivo: reporte `#5` anclado en testnet y leído de vuelta con
 `commitment_v1` se informan como `UNVERIFIED_COMMITMENT` — el contrato
 comprueba la raíz y el nullificador, **no** la pertenencia.
 
+## Créditos
+
+| Persona | Rol | Contacto |
+| --- | --- | --- |
+| Fernando May | Idea, arquitectura, contratos y despliegue | [@FernandoMay](https://github.com/FernandoMay) |
+| Mario (ECOMAM) | Coautoría y colaboración en el repositorio | [@ECOMAM](https://github.com/ECOMAM) |
+
+ECOMAM tiene una invitación de colaboración abierta con permisos de escritura
+sobre este repositorio; el acceso efectivo comienza cuando la acepta.
+
 ## Repository
 
 ```
